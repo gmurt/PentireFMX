@@ -1,0 +1,40 @@
+object Form2: TForm2
+  Left = 0
+  Top = 0
+  Caption = 'Form3'
+  ClientHeight = 480
+  ClientWidth = 640
+  Fill.Color = claTan
+  Fill.Kind = Solid
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  DesignerMasterStyle = 0
+  object Label1: TLabel
+    Align = Center
+    AutoSize = True
+    StyledSettings = [Family, Style, FontColor]
+    Size.Width = 124.000000000000000000
+    Size.Height = 54.000000000000000000
+    Size.PlatformDefault = False
+    TextSettings.Font.Size = 40.000000000000000000
+    TextSettings.WordWrap = False
+    Text = 'Form 2'
+    TabOrder = 0
+  end
+  object ToolBar1: TToolBar
+    Size.Width = 640.000000000000000000
+    Size.Height = 40.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 1
+    object SpeedButton1: TSpeedButton
+      Align = Left
+      Size.Width = 49.000000000000000000
+      Size.Height = 40.000000000000000000
+      Size.PlatformDefault = False
+      StyleLookup = 'drawertoolbutton'
+      Text = 'SpeedButton1'
+      OnClick = SpeedButton1Click
+    end
+  end
+end

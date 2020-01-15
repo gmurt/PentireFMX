@@ -67,3 +67,5 @@ __recovery/
 
 # Boss dependency manager vendor folder https://github.com/HashLoad/boss
 modules/
+/Demos/Overview/iOSDevice64/Debug
+/Demos/SideMenu/iOSDevice64/Release
