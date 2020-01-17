@@ -29,7 +29,7 @@ interface
 uses System.Generics.Collections, FMX.Graphics, FMX.Objects, System.Classes, FMX.Forms;
 
 type
-  TksFormStackTransitionType = (ttSlideInFromRight, ttSlideUpFromBottom);
+  TksFormStackTransitionType = (ttNone, ttSlideInFromRight, ttSlideUpFromBottom);
 
   ITransitionForm = interface
     ['{771D1CDA-322B-486D-8AB6-96714A7AB41B}']
@@ -207,12 +207,16 @@ begin
   try
     if FStack.Count > 0 then
     begin
-
-
-      AnimateForms(FStack.Last.FForm,
-                   FStack[FStack.Count-2].FForm,
-                   True,
-                   FStack.Last.FType = ttSlideUpFromBottom);
+      if FStack.Last.FType = ttNone then
+      begin
+        FStack[FStack.Count-2].FForm.Show;
+        FStack.Last.FForm.Hide;
+      end
+      else
+        AnimateForms(FStack.Last.FForm,
+                     FStack[FStack.Count-2].FForm,
+                     True,
+                     FStack.Last.FType = ttSlideUpFromBottom);
 
 
       AItem := FStack.Last;
@@ -239,12 +243,6 @@ begin
   FUpdating := True;
   try
     AForm.Focused := nil;
-
-    //{$IFDEF ANDROID}
-
-
-
-    //AForm.HandleNeeded;
 
     if FStack.Count > 0 then
     begin
@@ -280,7 +278,10 @@ begin
         {$IFDEF ANDROID}
         AForm.Show;
         {$ELSE}
-        AnimateForms(ALast, AForm, False, ADirection = ttSlideUpFromBottom);
+        if ADirection = ttNone then
+          AForm.Show
+        else
+          AnimateForms(ALast, AForm, False, ADirection = ttSlideUpFromBottom);
         {$ENDIF}
       end;
     end
