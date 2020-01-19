@@ -58,6 +58,7 @@ type
   TksInputListCheckBoxChangeEvent = procedure(Sender: TObject; AItem: TksInputListCheckBoxItem; AID: string; AIsChecked: Boolean) of object;
   TksInputListButtonClickEvent = procedure(Sender: TObject; AItem: TksInputListButtonItem; AID: string) of object;
   TksInputListTrackBarItemEvent = procedure(Sender: TObject; AItem: TksInputListTrackBarItem; AID: string; AValue: single) of object;
+  TksInputListPaintItemEvent = procedure(Sender: TObject; ACanvas: TCanvas; AItemRect: TRectF; AIndex: integer) of object;
 
   TksBaseInputListItem = class
   private
@@ -479,6 +480,7 @@ type
     FShowDividers: Boolean;
     FBackgroundColor: TAlphaColor;
     FMouseDown: Boolean;
+    FOnPaintItem: TksInputListPaintItemEvent;
     procedure UpdateItemRects;
     procedure RedrawItems;
     procedure CreateScrollMonitor;
@@ -533,6 +535,7 @@ type
     property OnItemCheckBoxChanged: TksInputListCheckBoxChangeEvent read FOnCheckBoxChange write FOnCheckBoxChange;
     property OnItemButtonClick: TksInputListButtonClickEvent read FOnItemButtonClick write FOnItemButtonClick;
     property OnItemTrackBarChange: TksInputListTrackBarItemEvent read FOnItemTrackBarChange write FOnItemTrackBarChange;
+    property OnPaintItem: TksInputListPaintItemEvent read FOnPaintItem write FOnPaintItem;
   end;
 
   procedure Register;
@@ -1466,6 +1469,9 @@ begin
       ACanvas.Fill.Color := FSelectedColor;
 
     r := FItemRect;
+
+
+
     InflateRect(r, 0, 0.5);
 
     ACanvas.FillRect(r, 0, 0, AllCorners, 1);
@@ -1485,6 +1491,14 @@ begin
     ACanvas.Stroke.Color := claPink;
     ACanvas.DrawRect(FImageRect, C_CORNER_RADIUS, C_CORNER_RADIUS, AllCorners, 1);
     {$ENDIF}
+
+    {ACanvas.Stroke.Color := claBlue;
+    ACanvas.Stroke.Thickness := 2;
+    ACanvas.DrawRect(ABorderRect, 0, 0, AllCorners, 1);}
+
+    if Assigned(FksInputList.OnPaintItem) then
+      FksInputList.OnPaintItem(Self, ACanvas, r, FksInputList.Items.IndexOf(Self));
+
 
     if (FAccessory <> atNone) and (FReadOnly = False) then
     begin
@@ -1666,6 +1680,7 @@ begin
     Changed;
   end;
 end;
+
 
 procedure TksBaseInputListItem.SetDetail(const Value: string);
 begin
