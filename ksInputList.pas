@@ -279,6 +279,8 @@ type
   private
     function GetSwitch: TSwitch;
     procedure SwitchChange(Sender: TObject);
+    function GetIsChecked: Boolean;
+    procedure SetIsChecked(const Value: Boolean);
   protected
     function GetValue: string; override;
     procedure SetValue(const AValue: string); override;
@@ -288,7 +290,8 @@ type
 
   public
     constructor Create(AInputList: TksInputList); override;
-    property Switch: TSwitch read GetSwitch;
+    //property Switch: TSwitch read GetSwitch;
+    property IsChecked: Boolean read GetIsChecked write SetIsChecked;
   end;
 
   TksInputListCheckBoxItem = class(TksInputListItemWithControl)
@@ -1923,8 +1926,8 @@ begin
   Result.FItemID := AID;
   Result.FImage.Assign(AImg);
   Result.Title := ATitle;
-  Result.Switch.IsChecked := AState;
-  Result.Switch.OnSwitch := Result.SwitchChange;
+  Result.GetSwitch.IsChecked := AState;
+  Result.GetSwitch.OnSwitch := Result.SwitchChange;
   Result.OnChange := ItemChange;
   Add(Result);
   ItemChange(Self);
@@ -2266,7 +2269,7 @@ end;
 
 destructor TksInputListItemWithControl.Destroy;
 begin
-  FControl.Free;
+  FControl.DisposeOf;
   FCached.Free;
   inherited;
 end;
@@ -2311,7 +2314,8 @@ end;
 
 procedure TksInputListItemWithControl.PaintControl(ACanvas: TCanvas);
 begin
-  FControl.PaintTo(ACanvas, RectF(0, 0, FControl.Width, FControl.Height));
+  if FControl.Parent <> FksInputList then
+    FControl.PaintTo(ACanvas, RectF(0, 0, FControl.Width, FControl.Height));
 end;
 
 
@@ -2353,6 +2357,11 @@ begin
   Result := '{C9533F62-6097-4AB2-B353-C54F83B29EEF}';
 end;
 
+function TksInputListSwitchItem.GetIsChecked: Boolean;
+begin
+  Result := GetSwitch.IsChecked;
+end;
+
 function TksInputListSwitchItem.GetSwitch: TSwitch;
 begin
   Result := FControl as TSwitch;
@@ -2360,32 +2369,38 @@ end;
 
 function TksInputListSwitchItem.GetValue: string;
 begin
-  Result := BoolToStr(Switch.IsChecked, True);
+  Result := BoolToStr(GetSwitch.IsChecked, True);
 end;
 
 procedure TksInputListSwitchItem.Reset;
 begin
   inherited;
-  Switch.IsChecked := False;
+  IsChecked := False;
+end;
+
+procedure TksInputListSwitchItem.SetIsChecked(const Value: Boolean);
+begin
+  GetSwitch.IsChecked := Value;
 end;
 
 procedure TksInputListSwitchItem.SetValue(const AValue: string);
 begin
   inherited;
-  Switch.IsChecked := TryGetBoolFromString(AValue);
+  IsChecked := TryGetBoolFromString(AValue);
 end;
 
 procedure TksInputListSwitchItem.SwitchChange(Sender: TObject);
 var
   ATask: ITask;
 begin
+  FCached.Clear(claNull);
   ATask := TTask.Create (procedure ()
    begin
      TThread.Synchronize(nil,procedure
       begin
         if Assigned(FksInputList.OnItemSwitchChanged) then
         begin
-          FksInputList.OnItemSwitchChanged(FksInputList, Self, ID, Switch.IsChecked);
+          FksInputList.OnItemSwitchChanged(FksInputList, Self, ID, GetSwitch.IsChecked);
         end;
       end);
    end);

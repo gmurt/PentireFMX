@@ -250,8 +250,11 @@ begin
       AForm.Height := FStack.Last.FForm.Height;
     end;
 
-    AForm.Show;
-    AForm.Hide;
+    if ADirection <> ttNone then
+    begin
+      AForm.Show;
+      AForm.Hide;
+    end;
 
     HideKeyboard;
 
