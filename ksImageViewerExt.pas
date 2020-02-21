@@ -26,7 +26,7 @@ unit ksImageViewerExt;
 
 interface
 
-uses Classes, Types, ksTypes, FMX.InertialMovement, System.UITypes, FMX.Graphics,
+uses Classes, Types, FMX.InertialMovement, System.UITypes, FMX.Graphics,
   FMX.Controls, FMX.Types, FMX.Objects;
 
 type
