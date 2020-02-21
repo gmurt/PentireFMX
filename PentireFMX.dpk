@@ -36,7 +36,8 @@ contains
   ksColorButton in 'ksColorButton.pas',
   ksSideMenu in 'ksSideMenu.pas',
   ksFormStack in 'ksFormStack.pas',
-  ksChatList in 'ksChatList.pas';
+  ksChatList in 'ksChatList.pas',
+  ksImageViewerExt in 'ksImageViewerExt.pas';
 
 end.
 

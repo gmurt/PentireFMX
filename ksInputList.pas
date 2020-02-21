@@ -845,7 +845,6 @@ begin
 
       end;
       FLastScrollPos := VScrollBarValue;
-
     end;
   end);
   FScrollMonitor.Start;
@@ -856,6 +855,8 @@ var
   AItem: TksBaseInputListItem;
   c: TPresentedControl;
 begin
+  FScrollMonitor := nil;
+
   for AItem in FItems do
   begin
     if AItem is TksInputListItemWithControl then
