@@ -9,27 +9,28 @@ package PentireFMX;
 {$EXTENDEDSYNTAX ON}
 {$IMPORTEDDATA ON}
 {$IOCHECKS ON}
-{$LOCALSYMBOLS OFF}
+{$LOCALSYMBOLS ON}
 {$LONGSTRINGS ON}
 {$OPENSTRINGS ON}
-{$OPTIMIZATION ON}
+{$OPTIMIZATION OFF}
 {$OVERFLOWCHECKS OFF}
 {$RANGECHECKS OFF}
-{$REFERENCEINFO OFF}
+{$REFERENCEINFO ON}
 {$SAFEDIVIDE OFF}
-{$STACKFRAMES OFF}
+{$STACKFRAMES ON}
 {$TYPEDADDRESS OFF}
 {$VARSTRINGCHECKS ON}
 {$WRITEABLECONST OFF}
 {$MINENUMSIZE 1}
 {$IMAGEBASE $400000}
-{$DEFINE RELEASE}
+{$DEFINE DEBUG}
 {$ENDIF IMPLICITBUILDING}
 {$IMPLICITBUILD ON}
 
 requires
   rtl,
-  fmx;
+  fmx,
+  designide;
 
 contains
   ksInputList in 'ksInputList.pas',
@@ -37,7 +38,15 @@ contains
   ksSideMenu in 'ksSideMenu.pas',
   ksFormStack in 'ksFormStack.pas',
   ksChatList in 'ksChatList.pas',
-  ksImageViewerExt in 'ksImageViewerExt.pas';
+  ksImageViewerExt in 'ksImageViewerExt.pas',
+  ksTabControl in 'ksTabControl.pas',
+  ksPickers in 'ksPickers.pas',
+  ksComponentEditors in 'ksComponentEditors.pas',
+  ksSegmentButtons in 'ksSegmentButtons.pas',
+  ksVirtualListView in 'ksVirtualListView.pas',
+  ksAccessories in 'ksAccessories.pas',
+  ksToolbar in 'ksToolbar.pas',
+  ksCircleProgress in 'ksCircleProgress.pas';
 
 end.
 

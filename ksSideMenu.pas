@@ -93,7 +93,8 @@ implementation
 
 
 
-uses SysUtils, FMX.Platform, System.UIConsts, FMX.Types, FMX.Ani, FMX.Utils, System.UITypes, ksFormStack;
+uses SysUtils, FMX.Platform, System.UIConsts, FMX.Types, FMX.Ani, FMX.Utils, System.UITypes, ksFormStack,
+  System.Threading;
 
 const
   C_MENU_SLIDE_SPEED  = 0.15;
@@ -189,28 +190,51 @@ begin
   if ATargetForm <> FCallingForm then
   begin
     ATargetForm.SetBounds(FCallingForm.Bounds);
-
     if Assigned(FBeforeShowForm) then
       FBeforeShowForm(Self, ATargetForm);
 
     GenerateFormBitmap(ATargetForm, FCachedForm);
     FImage.Bitmap := FCachedForm;
-    Application.ProcessMessages;
-
+    //Application.ProcessMessages;
   end;
 
+//  TAnimator.AnimateFloatWait(FImage, 'Position.X', 0, C_MENU_SLIDE_SPEED);
+  FImage.HitTest := False;
+  FMenu.HitTest := False;
+  FImage.Visible := True;
+  FMenu.Visible := True;
+  {$IFDEF ANDROID}
+  TAnimator.AnimateFloat(FImage, 'Position.X', 0, C_MENU_SLIDE_SPEED);
+  TTask.Run(
+    procedure
+    begin
+      Sleep(Round(C_MENU_SLIDE_SPEED*1000));
+      FImage.HitTest := True;
+      FMenu.HitTest := True;
+    end
+  );
+  FImage.HitTest := True;
+  FMenu.HitTest := True;
+  {$ELSE}
   TAnimator.AnimateFloatWait(FImage, 'Position.X', 0, C_MENU_SLIDE_SPEED);
-  ATargetForm.Show;
+  FImage.HitTest := True;
+  FMenu.HitTest := True;
+  {$ENDIF}
 
+  ATargetForm.Show;
+  Application.ProcessMessages;
   if Assigned(FAfterShowForm) then
     FAfterShowForm(Self, ATargetForm);
 
 
-    Application.ProcessMessages;
-  begin
-    FCallingForm.RemoveObject(FMenu);
-    FCallingForm.RemoveObject(FImage);
-  end;
+
+  FCallingForm.RemoveObject(FMenu);
+  FCallingForm.RemoveObject(FImage);
+  if FCallingForm <> ATargetForm then
+    FCallingForm.Hide;
+
+  GlobalFormStack.Clear(ATargetForm);
+
 end;
 
 constructor TksSideMenu.Create(AOwner: TComponent);
@@ -271,11 +295,27 @@ begin
   FMenu.SetBounds(0, 0, C_MENU_WIDTH, ACallingForm.Height);
   FMenu.Width := C_MENU_WIDTH;
   FMenu.BackgroundColor := claBlack;
-
+  FImage.HitTest := False;
+  FMenu.HitTest := False;
   FImage.Visible := True;
   FMenu.Visible := True;
+  {$IFDEF ANDROID}
   TAnimator.AnimateFloat(FImage, 'Position.X', C_MENU_WIDTH, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
-
+  TTask.Run(
+    procedure
+    begin
+      Sleep(Round(C_MENU_SLIDE_SPEED*1000));
+      FImage.HitTest := True;
+      FMenu.HitTest := True;
+    end
+  );
+  FImage.HitTest := True;
+  FMenu.HitTest := True;
+  {$ELSE}
+  TAnimator.AnimateFloatWait(FImage, 'Position.X', C_MENU_WIDTH, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
+  FImage.HitTest := True;
+  FMenu.HitTest := True;
+  {$ENDIF}
 end;
 
 procedure TksSideMenu.UpdateMenu;

@@ -74,3 +74,4 @@ modules/
 /Demos/Overview/AndroidManifest.template.xml
 /*.tmp
 Release
+ksInputList2.pas

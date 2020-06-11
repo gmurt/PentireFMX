@@ -54,8 +54,8 @@ type
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure Push(AForm: TCustomForm; const
-                   ADirection: TksFormStackTransitionType = ttSlideInFromRight;
+    procedure Push(AForm: TCustomForm;
+                   //ADirection: TksFormStackTransitionType = ttSlideInFromRight;
                    const AParams: TStrings = nil);
     procedure Pop;
     procedure Clear(ARootForm: TCommonCustomForm);
@@ -88,6 +88,14 @@ begin
   try
     AFrom.Focused := nil;
     ATo.SetBounds(AFrom.Bounds);
+
+    if Bmp1 = nil then
+    begin
+      Bmp1 := TBitmap.Create;
+      Bmp2 := TBitmap.Create;
+      Bmp1.BitmapScale := 2;
+      Bmp2.BitmapScale := 2;
+    end;
 
     Bmp1.SetSize(AFrom.Width*2, AFrom.Height*2);
     Bmp2.SetSize(AFrom.Width*2, AFrom.Height*2);
@@ -205,19 +213,21 @@ begin
     Exit;
   FUpdating := True;
   try
-    if FStack.Count > 0 then
+    if FStack.Count > 1 then
     begin
-      if FStack.Last.FType = ttNone then
-      begin
+      //if FStack.Last.FType = ttNone then
+      //begin
+
         FStack[FStack.Count-2].FForm.Show;
         FStack.Last.FForm.Hide;
-      end
-      else
+
+      //end
+      {else
         AnimateForms(FStack.Last.FForm,
                      FStack[FStack.Count-2].FForm,
                      True,
                      FStack.Last.FType = ttSlideUpFromBottom);
-
+                                   }
 
       AItem := FStack.Last;
       FStack.Remove(FStack.Last);
@@ -231,7 +241,7 @@ begin
 end;
 
 procedure TksFormStack.Push(AForm: TCustomForm;
-                            const ADirection: TksFormStackTransitionType = ttSlideInFromRight;
+                            //const ADirection: TksFormStackTransitionType = ttSlideInFromRight;
                             const AParams: TStrings = nil);
 var
   ATran: TksFormStackTransition;
@@ -244,56 +254,56 @@ begin
   try
     AForm.Focused := nil;
 
-    if FStack.Count > 0 then
+    if FStack.Count > 1 then
     begin
       AForm.Width := FStack.Last.FForm.Width;
       AForm.Height := FStack.Last.FForm.Height;
     end;
 
-    if ADirection <> ttNone then
+   { if ADirection <> ttNone then
     begin
       AForm.Show;
       AForm.Hide;
-    end;
+    end;}
 
     HideKeyboard;
 
 
     ALast := nil;
-    if FStack.Count > 0 then
+    if FStack.Count > 1 then
       ALast := FStack.Last.FForm;
 
     ATran := TksFormStackTransition.Create;
-    ATran.FType := ADirection;
+    ATran.FType := ttNone;
     ATran.FForm := AForm;
     FStack.Add(ATran);
 
-    if Supports(AForm, ITransitionForm, AInf) then
-      AInf.BeforeTransitionIntoView(True, AParams);
+    try
+      if Supports(AForm, ITransitionForm, AInf) then
+        AInf.BeforeTransitionIntoView(True, AParams);
+    except
+      //
+    end;
 
 
-    if FStack.Count > 0 then
+    if FStack.Count > 1 then
     begin
       if ALast = nil then
         AForm.Show
       else
       begin
-        {$IFDEF ANDROID}
         AForm.Show;
-        {$ELSE}
-        if ADirection = ttNone then
-          AForm.Show
-        else
-          AnimateForms(ALast, AForm, False, ADirection = ttSlideUpFromBottom);
-        {$ENDIF}
       end;
     end
     else
       AForm.Show;
 
-
-    if Supports(AForm, ITransitionForm, AInf) then
-      AInf.AfterTransitionIntoView(True, AParams);
+    try
+      if Supports(AForm, ITransitionForm, AInf) then
+        AInf.AfterTransitionIntoView(True, AParams);
+    except
+      //
+    end;
 
   finally
     FUpdating := False;
@@ -311,10 +321,10 @@ end;
 initialization
 
   GlobalFormStack := TksFormStack.Create;
-  Bmp1 := TBitmap.Create;
-  Bmp2 := TBitmap.Create;
-  Bmp1.BitmapScale := 2;
-  Bmp2.BitmapScale := 2;
+  Bmp1 := nil; //TBitmap.Create;
+  Bmp2 := nil; //TBitmap.Create;
+  //Bmp1.BitmapScale := 2;
+  //Bmp2.BitmapScale := 2;
 
 finalization
 

@@ -126,12 +126,21 @@
         </DelphiCompile>
         <DCCReference Include="rtl.dcp"/>
         <DCCReference Include="fmx.dcp"/>
+        <DCCReference Include="designide.dcp"/>
         <DCCReference Include="ksInputList.pas"/>
         <DCCReference Include="ksColorButton.pas"/>
         <DCCReference Include="ksSideMenu.pas"/>
         <DCCReference Include="ksFormStack.pas"/>
         <DCCReference Include="ksChatList.pas"/>
         <DCCReference Include="ksImageViewerExt.pas"/>
+        <DCCReference Include="ksTabControl.pas"/>
+        <DCCReference Include="ksPickers.pas"/>
+        <DCCReference Include="ksComponentEditors.pas"/>
+        <DCCReference Include="ksSegmentButtons.pas"/>
+        <DCCReference Include="ksVirtualListView.pas"/>
+        <DCCReference Include="ksAccessories.pas"/>
+        <DCCReference Include="ksToolbar.pas"/>
+        <DCCReference Include="ksCircleProgress.pas"/>
         <BuildConfiguration Include="Release">
             <Key>Cfg_2</Key>
             <CfgParent>Base</CfgParent>

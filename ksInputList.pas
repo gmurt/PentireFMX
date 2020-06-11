@@ -462,7 +462,7 @@ type
     FCanvas: TksInputListCanvas;
     FItems: TksInputListItems;
     FLastScrollPos: single;
-    FScrollMonitor: ITask;
+    FScrollMonitor: TThread;
     FControlsVisible: Boolean;
     FUpdateCount: integer;
     FLastScrollChange: TDateTime;
@@ -487,7 +487,6 @@ type
     procedure UpdateItemRects;
     procedure RedrawItems;
     procedure CreateScrollMonitor;
-    procedure ShowOnScreenControls;
     function GetIsScrolling: Boolean;
     procedure HidePickers;
     function GetValue(AName: string): string;
@@ -504,9 +503,13 @@ type
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Single); override;
     procedure ViewportPositionChange(const OldViewportPosition, NewViewportPosition: TPointF;
                                      const ContentSizeChanged: boolean); override;
+
   public
+
+
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
+    procedure ShowOnScreenControls;
     procedure HideAllControls;
     procedure BeginUpdate; override;
     procedure EndUpdate; override;
@@ -792,6 +795,7 @@ end;
 
 procedure TksInputList.ClearItems;
 begin
+  HideAllControls;
   BeginUpdate;
   try
     FItems.Clear;
@@ -826,7 +830,35 @@ begin
 end;
 
 procedure TksInputList.CreateScrollMonitor;
+var
+  Thread: TThread;
 begin
+  Thread := TThread.CreateAnonymousThread (
+    procedure
+    begin
+      while not Application.Terminated do
+      begin
+        sleep (200);
+        if (FItems.Count > 0) and (MilliSecondsBetween(FLastScrollPos, Now) > 300) then
+        begin
+          if (FLastScrollPos = VScrollBarValue) and (FControlsVisible = False) then
+          begin
+            TThread.Synchronize(nil,
+              procedure
+              begin
+                ShowOnScreenControls;
+              end);
+          end
+
+        end;
+        FLastScrollPos := VScrollBarValue;
+      end;
+    end
+  );
+  Thread.start;
+end;
+
+{begin
   FScrollMonitor := TTask.Create (procedure ()
   begin
     while not Application.Terminated do
@@ -848,7 +880,7 @@ begin
     end;
   end);
   FScrollMonitor.Start;
-end;
+end;         }
 
 destructor TksInputList.Destroy;
 var
