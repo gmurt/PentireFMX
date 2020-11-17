@@ -1,4 +1,4 @@
-unit untMain;
+unit untKsInputList;
 
 interface
 
@@ -10,7 +10,7 @@ uses
   ksToolBar;
 
 type
-  TfrmMain = class(TForm)
+  TfrmKsInputList = class(TForm)
     Image1: TImage;
     ksInputList1: TksInputList;
     ToolBar1: TToolBar;
@@ -31,7 +31,7 @@ type
   end;
 
 var
-  frmMain: TfrmMain;
+  frmKsInputList: TfrmKsInputList;
 
 implementation
 
@@ -39,7 +39,7 @@ uses System.UIConsts, Json, FMX.DialogService, untSideMenu;
 
 {$R *.fmx}
 
-procedure TfrmMain.FormCreate(Sender: TObject);
+procedure TfrmKsInputList.FormCreate(Sender: TObject);
 var
   ICount: integer;
 begin
@@ -60,19 +60,19 @@ begin
 end;
 end;
 
-procedure TfrmMain.ksInputList1ItemButtonClick(Sender: TObject;
+procedure TfrmKsInputList.ksInputList1ItemButtonClick(Sender: TObject;
   AItem: TksInputListButtonItem; AID: string);
 begin
   ShowMessage('Button clicked: '+AID);
 end;
 
-procedure TfrmMain.ksInputList1ItemSwitchChanged(Sender: TObject;
+procedure TfrmKsInputList.ksInputList1ItemSwitchChanged(Sender: TObject;
   AItem: TksInputListSwitchItem; AID: string; AIsChecked: Boolean);
 begin
   AItem.Title := (AID+'  '+BoolToStr(AIsChecked, True));
 end;
 
-procedure TfrmMain.ksInputList1ItemTrackBarChange(Sender: TObject;
+procedure TfrmKsInputList.ksInputList1ItemTrackBarChange(Sender: TObject;
   AItem: TksInputListTrackBarItem; AID: string; AValue: Single);
 begin
   Caption := FloatToStr(AValue);
@@ -80,7 +80,7 @@ begin
 end;
 
 
-procedure TfrmMain.ksToolbar1MenuButtonClick(Sender: TObject);
+procedure TfrmKsInputList.ksToolbar1MenuButtonClick(Sender: TObject);
 begin
   frmMenu.ksSideMenu1.OpenMenu(Self);
 end;

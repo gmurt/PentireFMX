@@ -1,10 +1,10 @@
 {*******************************************************************************
 *                                                                              *
-*  TkToolbar - Toolbar with form stack/transitions awareness                   *
+*  PentireFMX                                                                  *
 *                                                                              *
-*  https://github.com/gmurt/KernowSoftwareFMX                                  *
+*  https://github.com/gmurt/PentireFMX                                         *
 *                                                                              *
-*  Copyright 2017 Graham Murt                                                  *
+*  Copyright 2020 Graham Murt                                                  *
 *                                                                              *
 *  email: graham@kernow-software.co.uk                                         *
 *                                                                              *
@@ -17,7 +17,7 @@
 *  Unless required by applicable law or agreed to in writing, software         *
 *  distributed under the License is distributed on an "AS IS" BASIS,           *
 *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.    *
-*  See the License for the specific language governing permissions and         *
+*  See the License forthe specific language governing permissions and          *
 *  limitations under the License.                                              *
 *                                                                              *
 *******************************************************************************}
@@ -35,30 +35,16 @@ uses Classes, FMX.StdCtrls, FMX.Graphics, FMX.Objects, FMX.Types,
   FMX.Controls.Presentation, FMX.Controls, System.Types;
 
 type
- // TksToolbar = class;
-
-  {IksToolbar = interface
-  ['{42609FB8-4DE0-472F-B49C-A6CD636A530D}//]
-    //procedure SetTransition(ATransition: TksTransitionType);
-  //end;
-
   [ComponentPlatformsAttribute(pidAllPlatforms)]
   TksToolbar = class(TPresentedControl)
   private
     FButton: TSpeedButton;
-    //FButtonInitialized: Boolean;
     FTintColor: TAlphaColor;
     FFont: TFont;
     FTextColor: TAlphaColor;
     FButtonColor: TAlphaColor;
     FText: string;
     FBackButtonText: string;
-    {$IFDEF USE_FORM_STACK}
-
-    {$ELSE}
-    //FFormTransition: TksFormTransition;
-    {$ENDIF}
-
     FOnMenuButtonClick: TNotifyEvent;
     FShowMenuButton: Boolean;
     FOnBackButtonClick: TNotifyEvent;
@@ -115,7 +101,7 @@ uses Math, System.TypInfo, SysUtils, ksPickers, FMX.DialogService,
 
 procedure Register;
 begin
-  RegisterComponents('Kernow Software FMX', [TksToolbar]);
+  RegisterComponents('Pentire FMX', [TksToolbar]);
 end;
 
 
@@ -140,32 +126,27 @@ begin
     begin
       TThread.Synchronize (TThread.CurrentThread,
         procedure
-        var
-          i: integer;
         begin
-          i := 2;
-          i := 3;
+
           if GlobalFormStack.Depth > 1 then
           begin
-            i := 4;
+
             if Assigned(FOnBackButtonClick) then
             begin
-              i := 5;
+
               FOnBackButtonClick(Self);
-              i := 6;
+
             end
             else
             begin
-              i := 7;
+
               GlobalFormStack.Pop;
-              i := 8;
+
             end;
           end
           else
           begin
-            i := 9;
             FOnMenuButtonClick(Self);
-            i := 10;
           end;
           HideKeyboard;
           PickerService.HidePickers;
@@ -199,14 +180,11 @@ begin
   FButton.Stored := False;
   FButton.CanFocus := False;
   FButton.StyledSettings := [TStyledSetting.Family,TStyledSetting.Style,TStyledSetting.FontColor];
-  //FButton.Visible := False;
   FButton.OnClick := ButtonClicked;
   AddObject(FButton);
 
   FFont := TFont.Create;
-  //FFont.Size := 15;
   Align := TAlignLayout.MostTop;
-  //FFormTransition := TksFormTransition.Create(nil);
 
   FTintColor := $FFF9F9F9;
   FTextColor := claBlack;
@@ -221,7 +199,6 @@ end;
 
 destructor TksToolbar.Destroy;
 begin
- // FreeAndNil(FFormTransition);
   FreeAndNil(FFont);
   inherited;
 end;
@@ -253,11 +230,8 @@ var
   AState: TCanvasSaveState;
 begin
   inherited;
-  //if FFirstPaint then
-  begin
-    FFirstPaint := False;
-    UpdateButton;
-  end;
+  FFirstPaint := False;
+  UpdateButton;
 
   AState := Canvas.SaveState;
   try
@@ -353,14 +327,10 @@ begin
       FButton.Visible := FShowBackButton;
       if FButton.StyleLookup <> 'backtoolbutton' then
         FButton.StyleLookup := 'backtoolbutton';
-      //if FBackButtonText <> '' then
-      begin
-        //FButton.StyleLookup := '';
-        FButton.Text := FBackButtonText;
-        FButton.Width := 60;
-        FButton.Font.Size := 16;
-      end;
 
+      FButton.Text := FBackButtonText;
+      FButton.Width := 60;
+      FButton.Font.Size := 16;
     end;
   end;
 end;

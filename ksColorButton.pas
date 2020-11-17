@@ -1,6 +1,6 @@
 {*******************************************************************************
 *                                                                              *
-*  TksColorButton                                                              *
+*  PentireFMX                                                                  *
 *                                                                              *
 *  https://github.com/gmurt/PentireFMX                                         *
 *                                                                              *
@@ -29,7 +29,7 @@ interface
 uses Classes, FMX.Controls, FMX.Objects, FMX.StdCtrls, FMX.Types, System.UITypes;
 
 type
-  TksColorButtonStyle = (ksbsGray, ksbsGreen, ksbsRed, ksbsBlue, ksbsWhite);
+  TksColorButtonStyle = (ksbsGray, ksbsGreen, ksbsRed, ksbsBlue, ksbsWhite, ksbsCustom);
 
   [ComponentPlatformsAttribute(
     pidAllPlatforms
@@ -49,6 +49,7 @@ type
     procedure UpdateButton;
     procedure SetColours(ANormal, AHighlight, ABorder, AFont: TAlphaColor);
     procedure SetBorderRadius(const Value: single);
+    procedure SetFontColor(const Value: TAlphaColor);
   protected
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Single); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Single); override;
@@ -57,9 +58,11 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
   published
+    property Hint;
     property Style: TksColorButtonStyle read FStyle write SetStyle default ksbsGreen;
     property Text: string read GetText write SetText;
     property BorderRadius: single read FBorderRadius write SetBorderRadius;
+    property FontColor: TAlphaColor read FFontColor write SetFontColor;
   end;
 
   procedure Register;
@@ -104,7 +107,9 @@ end;
 procedure TksColorButton.DoMouseLeave;
 begin
   inherited;
-  Fill.Color := FColor;
+  if FStyle <> ksbsCustom then
+    Fill.Color := FColor;
+  Opacity := 1;
 end;
 
 function TksColorButton.GetText: string;
@@ -116,14 +121,14 @@ procedure TksColorButton.MouseDown(Button: TMouseButton; Shift: TShiftState; X,
   Y: Single);
 begin
   inherited;
-  Fill.Color := FHighlightColor;
+  Opacity := 0.75;
 end;
 
 procedure TksColorButton.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
   Y: Single);
 begin
   inherited;
-  Fill.Color := FColor;
+  Opacity := 1;
 end;
 
 procedure TksColorButton.SetStyle(const Value: TksColorButtonStyle);
@@ -155,6 +160,12 @@ begin
   FLabel.TextSettings.FontColor := AFont;
 end;
 
+procedure TksColorButton.SetFontColor(const Value: TAlphaColor);
+begin
+  FFontColor := Value;
+  UpdateButton;
+end;
+
 procedure TksColorButton.SetText(const Value: string);
 begin
   FLabel.Text := Value;
@@ -162,6 +173,8 @@ end;
 
 procedure TksColorButton.UpdateButton;
 begin
+  if FStyle = ksbsCustom then
+    Exit;
   case FStyle of
     ksbsGray: SetColours(claGainsboro, claSilver, claGray, claBlack);
     ksbsGreen: SetColours($FF4BD44B, $FF2FB92F, claForestgreen, clawhite);

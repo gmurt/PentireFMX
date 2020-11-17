@@ -1,10 +1,10 @@
 {*******************************************************************************
 *                                                                              *
-*  TksTabControl - tab control component with badge support                    *
+*  PentireFMX                                                                  *
 *                                                                              *
-*  https://bitbucket.org/gmurt/kscomponents                                    *
+*  https://github.com/gmurt/PentireFMX                                         *
 *                                                                              *
-*  Copyright 2017 Graham Murt                                                  *
+*  Copyright 2020 Graham Murt                                                  *
 *                                                                              *
 *  email: graham@kernow-software.co.uk                                         *
 *                                                                              *
@@ -17,7 +17,7 @@
 *  Unless required by applicable law or agreed to in writing, software         *
 *  distributed under the License is distributed on an "AS IS" BASIS,           *
 *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.    *
-*  See the License for the specific language governing permissions and         *
+*  See the License forthe specific language governing permissions and          *
 *  limitations under the License.                                              *
 *                                                                              *
 *******************************************************************************}
@@ -90,7 +90,6 @@ type
     FBadgeValue: integer;
     FBadge: TBitmap;
     FHighlightStyle: TksTabBarHighlightStyle;
-    //FCachedBmp: TBitmap;
     procedure SetText(const Value: string);
     procedure SetBadgeValue(const Value: integer);
     procedure UpdateTabs;
@@ -223,7 +222,7 @@ var
 
 procedure Register;
 begin
-  RegisterComponents('Kernow Software FMX', [TksTabControl]);
+  RegisterComponents('Pentire FMX', [TksTabControl]);
 end;
 
 function GetScreenScale: single;
@@ -252,7 +251,6 @@ end;
 
 procedure ReplaceOpaqueColor(ABmp: TBitmap; Color : TAlphaColor);
 var
-  //x,y: Integer;
   AMap: TBitmapData;
   PixelColor: TAlphaColor;
   PixelWhiteColor: TAlphaColor;
@@ -296,7 +294,6 @@ end;
 constructor TksTabItem.Create(AOwner: TComponent);
 begin
   inherited Create(AOwner);
-  //FCachedBmp := TBitmap.Create;
   FIcon := TBitmap.Create;
   ClipChildren := True;
   Stored := True;
@@ -309,7 +306,6 @@ end;
 
 destructor TksTabItem.Destroy;
 begin
-  //FreeAndNil(FCachedBmp);
   FreeAndNil(FIcon);
   inherited;
 end;
@@ -621,10 +617,6 @@ begin
     Inc(AIndex);
 
   Result := 'ksTabItem'+IntToStr(AIndex);
-  {repeat
-    Inc(AIndex);
-    Result := 'ksTabItem'+IntToStr(AIndex);
-  until AOwner.FindComponent(Result) = nil;   }
 end;
 
 function TksTabControl.GetSelectedTab: TksTabItem;
@@ -784,12 +776,9 @@ end;
 
 procedure TksTabControl.SetHasIosHomeBar(const Value: Boolean);
 begin
-  //if FHasIOSHomeBar <> Value then
-  begin
-    FHasIOSHomeBar := Value;
-    FTabBar.Height := GetTabBarHeight;
-    UpdateTabs;
-  end;
+  FHasIOSHomeBar := Value;
+  FTabBar.Height := GetTabBarHeight;
+  UpdateTabs;
 end;
 
 procedure TksTabControl.FadeToNextTab(const ADelaySeconds: single = 0.5);
@@ -855,7 +844,6 @@ begin
       ksTbpTop: FTabBar.Align := TAlignLayout.Top;
     end;
     ATab := Tabs[ICount];
-    //ATab.FCachedBmp.SetSize(0, 0);
     ATab.RedrawBadge;
     ATab.FTabIndex := ICount;
     ATab.Width := Self.Width;
@@ -930,8 +918,6 @@ var
   ATabControl: TksTabControl;
 begin
   inherited;
-  //if Locked then
-  //  Exit;
   if Locked then
     Exit;
 
@@ -963,12 +949,8 @@ begin
 
 
       for ICount := 0 to TksTabControl(FTabControl).GetTabCount-1 do
-      begin
-        //if ATabControl.Tabs[ICount].Visible then
         ATabControl.Tabs[ICount].DrawTab(Canvas, ICount, ATabControl.GetTabRect(ICount));
-      end;
 
-      //Stroke.Color := claRed;
       case ATabControl.TabPosition of
         ksTbpBottom: DrawRectSides(ARect, 0, 0, AllCorners,1, [TSide.Top]);
         ksTbpTop: DrawRectSides(ARect, 0, 0, AllCorners,1, [TSide.Bottom]);
@@ -988,7 +970,6 @@ end;
 procedure TksTabBarAppearence.Changed;
 begin
   TksTabControl(FTabControl).UpdateTabs;
-  //TksTabControl(FTabControl).Repaint;
 end;
 
 constructor TksTabBarAppearence.Create(ATabControl: TksTabControl);

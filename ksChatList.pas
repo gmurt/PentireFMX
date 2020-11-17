@@ -1,6 +1,6 @@
 {*******************************************************************************
 *                                                                              *
-*  TksChatList                                                                 *
+*  PentireFMX                                                                  *
 *                                                                              *
 *  https://github.com/gmurt/PentireFMX                                         *
 *                                                                              *

@@ -1,6 +1,6 @@
 {*******************************************************************************
 *                                                                              *
-*  TksFormStack                                                                *
+*  PentireFMX                                                                  *
 *                                                                              *
 *  https://github.com/gmurt/PentireFMX                                         *
 *                                                                              *
@@ -148,7 +148,6 @@ end;
 
 procedure ReplaceOpaqueColor(ABmp: TBitmap; Color : TAlphaColor);
 var
-  //x,y: Integer;
   AMap: TBitmapData;
   PixelColor: TAlphaColor;
   PixelWhiteColor: TAlphaColor;
@@ -195,10 +194,8 @@ begin
 
     GenerateFormBitmap(ATargetForm, FCachedForm);
     FImage.Bitmap := FCachedForm;
-    //Application.ProcessMessages;
   end;
 
-//  TAnimator.AnimateFloatWait(FImage, 'Position.X', 0, C_MENU_SLIDE_SPEED);
   FImage.HitTest := False;
   FMenu.HitTest := False;
   FImage.Visible := True;

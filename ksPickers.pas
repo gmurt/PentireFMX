@@ -1,10 +1,10 @@
 {*******************************************************************************
 *                                                                              *
-*  ksPickers - wrapper for the picker interfaces                               *
+*  PentireFMX                                                                  *
 *                                                                              *
-*  https://bitbucket.org/gmurt/kscomponents                                    *
+*  https://github.com/gmurt/PentireFMX                                         *
 *                                                                              *
-*  Copyright 2017 Graham Murt                                                  *
+*  Copyright 2020 Graham Murt                                                  *
 *                                                                              *
 *  email: graham@kernow-software.co.uk                                         *
 *                                                                              *
@@ -17,7 +17,7 @@
 *  Unless required by applicable law or agreed to in writing, software         *
 *  distributed under the License is distributed on an "AS IS" BASIS,           *
 *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.    *
-*  See the License for the specific language governing permissions and         *
+*  See the License forthe specific language governing permissions and          *
 *  limitations under the License.                                              *
 *                                                                              *
 *******************************************************************************}
@@ -88,9 +88,9 @@ type
     procedure ShowDatePicker(AParent: TControl; ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerDateEvent); overload;
     procedure ShowDatePicker(APoint: TPointF; ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerDateEvent); overload;
     procedure ShowTimePicker(ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerTimeEvent);
-    {$IFDEF IOS}
+
     procedure ShowDateTimePicker(ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerTimeEvent);
-    {$ENDIF}
+
     function CreateDatePicker: TCustomDateTimePicker;
     procedure HidePickers;//nst AForce: Boolean = False);
   end;
@@ -107,8 +107,6 @@ uses FMX.Platform, SysUtils, FMX.Forms,
 
 constructor TksPickerService.Create;
 begin
- // FPickerView := TDPFPickerView.Create(nil);
-
   FPickerITems := TStringList.Create;
   {$IFDEF DPF}
   FActionSheet := TDPFUIActionSheet.Create(nil);
@@ -157,47 +155,18 @@ end;
 {$IFDEF DPF}
 procedure TksPickerService.DoActionSheetButtonClick(Sender: TObject;
   ButtonIndex: Integer);
-var
-  Thread: TThread;
 begin
-  Thread := TThread.CreateAnonymousThread (
-    procedure
-    begin
-      TThread.Synchronize(nil,
-        procedure
-        begin
-           //Interact with UI
-            if ButtonIndex < FPickerITems.Count then
-              DoSelectItem(Sender, ButtonIndex);
-
-        end
-      );
-    end
-  );
-  Thread.start;
+  if ButtonIndex < FPickerITems.Count then
+    DoSelectItem(Sender, ButtonIndex);
 end;
 
 {$ENDIF}
 
 procedure TksPickerService.DoDateSelected(Sender: TObject;
   const ADate: TDateTime);
-var
-  Thread: TThread;
 begin
-  Thread := TThread.CreateAnonymousThread (
-    procedure
-    begin
-      TThread.Synchronize(nil,
-        procedure
-        begin
-          if Assigned(FOnDateSelected) then
-            FOnDateSelected(Self, ADate);
-
-        end
-      );
-    end
-  );
-  Thread.start;
+  if Assigned(FOnDateSelected) then
+    FOnDateSelected(Self, ADate);
 end;
 
 {$IFDEF IOS}
@@ -271,6 +240,11 @@ var
   ABtn: TDPFActionSheetButtonItem;
   {$ENDIF}
 begin
+  {$IFDEF ANDROID}
+  ShowItemPicker(nil, AItems, ATitle, -1, AOnSelect, nil);
+  Exit;
+  {$ENDIF}
+
   {$IFDEF DPF}
   FOnItemSelected := AOnSelect;
 
@@ -300,12 +274,18 @@ begin
   {$ELSE}
   ShowItemPicker(nil, AItems, '', -1, AOnSelect, nil);
   {$ENDIF}
+
 end;
 
 procedure TksPickerService.ShowDatePicker(AParent: TControl; ATitle: string;
   ASelected: TDateTime; AOnSelect: TksSelectPickerDateEvent);
 begin
   FOnDateSelected := AOnSelect;
+
+
+
+  FDatePicker := PickerService.CreateDatePicker;
+
   FDatePicker.OnDateChanged := DoDateSelected;
   if ASelected = 0 then
     ASelected := Date;
@@ -317,6 +297,8 @@ end;
 procedure TksPickerService.ShowDatePicker(APoint: TPointF; ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerDateEvent);
 begin
   FOnDateSelected := AOnSelect;
+
+  FDatePicker := PickerService.CreateDatePicker;
   FDatePicker.OnDateChanged := DoDateSelected;
   if ASelected = 0 then
     ASelected := Date;
@@ -337,6 +319,10 @@ procedure TksPickerService.ShowTimePicker(ATitle: string;
   ASelected: TDateTime; AOnSelect: TksSelectPickerTimeEvent);
 begin
   FOnTimeSelected := AOnSelect;
+
+  FTimePicker := CreateDatePicker;
+  FTimePicker.ShowMode := TDatePickerShowMode.Time;
+
   FTimePicker.OnDateChanged := DoTimeSelected;
   if ASelected = 0 then
     ASelected := EncodeTime(9,0,0,0);
@@ -344,18 +330,27 @@ begin
   FTimePicker.Show;
 end;
 
-{$IFDEF IOS}
+
 procedure TksPickerService.ShowDateTimePicker(ATitle: string;
   ASelected: TDateTime; AOnSelect: TksSelectPickerTimeEvent);
 begin
+  {$IFDEF IOS}
   FOnDateTimeSelected := AOnSelect;
+
+  FDateTimePicker := CreateDatePicker;
+  FDateTimePicker.ShowMode := TDatePickerShowMode.DateTime;
   FDateTimePicker.OnDateChanged := DoDateTimeSelected;
   if ASelected = 0 then
     ASelected := Trunc(Date)+EncodeTime(9,0,0,0);
   FDateTimePicker.Date := ASelected;
   FDateTimePicker.Show;
+  {$ENDIF}
+
+  {$IFDEF ANDROID}
+  ShowDatePicker(ATitle, ASelected, nil)
+  {$ENDIF}
 end;
-{$ENDIF}
+
 
 procedure TksPickerService.ShowItemPicker(AParent: TControl; AItems: TStrings; ATitle: string;
   AIndex: integer; AOnSelect: TksSelectPickerItemEvent; AOnHide: TNotifyEvent);
@@ -363,13 +358,6 @@ begin
   HidePickers;
 
   FPickerITems.Assign(AItems);
-
-  {$IFDEF MSWINDOWS}
-  {if FPicker <> nil then
-  begin
-    FPicker.Free;
-  end;}
-  {$ENDIF}
 
   FPicker.OnHide := AOnHide;
   FPicker.Values.Assign(AItems);
@@ -382,32 +370,6 @@ begin
 
   FPrevPicker := FPicker;
 end;
-  (*
-procedure TksPickerService.ShowItemPicker(APoint: TPointF; AStrings: TStrings; ATitle: string; AIndex: integer; AOnSelect: TksSelectPickerItemEvent);
-begin
- (* HidePickers;
-
-  FPickerITems.Assign(AItems);
-
-  {$IFDEF MSWINDOWS}
-  if FPicker <> nil then
-  begin
-    FPicker.Free;
-  end;
-  {$ENDIF}
-
-  FPicker := PickerService.CreateListPicker;
-  FPicker.OnHide;
-  FPicker.Values.Assign(AItems);
-  FPicker.ItemIndex := AIndex;
-  FPicker.
-
-  FOnItemSelected := AOnSelect;
-  FPicker.OnValueChanged := DoItemSelected;
-  FPicker.Show;
-
-  FPrevPicker := FPicker;
-end;                              *)
 
 procedure TksPickerService.ShowItemPicker(AParent: TControl; AItems: array of string;
   ATitle: string; AIndex: integer; AOnSelect: TksSelectPickerItemEvent);
@@ -427,25 +389,6 @@ begin
     FreeAndNil(AStrings);
   end;
 end;
-                    (*
-procedure TksPickerService.ShowItemPicker(APoint: TPointF; AItems: array of string;
-  ATitle: string; AIndex: integer; AOnSelect: TksSelectPickerItemEvent);
-var
-  ICount: integer;
-  AStrings: TStrings;
-begin
-
-  AStrings := TStringList.Create;
-  try
-    for Icount := Low(AItems) to High(AItems) do
-    begin
-      AStrings.Add(AItems[ICount]);
-      ShowItemPicker(AParent, AStrings, ATitle, AIndex, AOnSelect, nil);
-    end;
-  finally
-    FreeAndNil(AStrings);
-  end;
-end;        *)
 
 procedure TksPickerService.ShowItemPicker(APoint: TPointF; AItems: TStrings;
   ATitle: string; AIndex: integer; AOnSelect: TksSelectPickerItemEvent);

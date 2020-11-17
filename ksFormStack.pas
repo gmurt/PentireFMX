@@ -1,6 +1,6 @@
 {*******************************************************************************
 *                                                                              *
-*  TksFormStack                                                                *
+*  PentireFMX                                                                  *
 *                                                                              *
 *  https://github.com/gmurt/PentireFMX                                         *
 *                                                                              *
@@ -47,15 +47,13 @@ type
   TksFormStack = class
   private
     FUpdating: Boolean;
-    FStack: TList<TksFormStackTransition>;
+    FStack: TObjectList<TksFormStackTransition>;
     procedure HideKeyboard;
-    procedure AnimateForms(AFrom, ATo: TCustomForm; AReverse: Boolean; const ASlideUp: Boolean = False);
     function GetDepth: integer;
   public
     constructor Create; virtual;
     destructor Destroy; override;
     procedure Push(AForm: TCustomForm;
-                   //ADirection: TksFormStackTransitionType = ttSlideInFromRight;
                    const AParams: TStrings = nil);
     procedure Pop;
     procedure Clear(ARootForm: TCommonCustomForm);
@@ -76,102 +74,7 @@ const
 var
   Bmp1, Bmp2: TBitmap;
 
-
 { TksFormStack }
-
-procedure TksFormStack.AnimateForms(AFrom, ATo: TCustomForm; AReverse: Boolean; const ASlideUp: Boolean = False);
-var
-  AImg1, AImg2: TImage;
-begin
-  AImg1 := TImage.Create(nil);
-  AImg2 := TImage.Create(nil);
-  try
-    AFrom.Focused := nil;
-    ATo.SetBounds(AFrom.Bounds);
-
-    if Bmp1 = nil then
-    begin
-      Bmp1 := TBitmap.Create;
-      Bmp2 := TBitmap.Create;
-      Bmp1.BitmapScale := 2;
-      Bmp2.BitmapScale := 2;
-    end;
-
-    Bmp1.SetSize(AFrom.Width*2, AFrom.Height*2);
-    Bmp2.SetSize(AFrom.Width*2, AFrom.Height*2);
-    AFrom.PaintTo(Bmp1.Canvas);
-    ATo.PaintTo(Bmp2.Canvas);
-    AImg1.Bitmap.Assign(Bmp1);
-    AImg2.Bitmap.Assign(Bmp2);
-
-    if not AReverse then
-    begin
-      AImg1.SetBounds(0, 0, AFrom.Width, AFrom.Height);
-      case ASlideUp of
-        True: AImg2.SetBounds(0, AFrom.Height, AFrom.Width, AFrom.Height);
-        False: AImg2.SetBounds(AFrom.Width, 0, AFrom.Width, AFrom.Height);
-      end;
-
-      ATo.AddObject(AImg1);
-      ATo.AddObject(AImg2);
-      ATo.Show;
-
-      case ASlideUp of
-        False: TAnimator.AnimateFloat(AImg1, 'Position.X', 0-(AImg1.Width/2), C_SLIDE_SPEED);
-      end;
-
-      case ASlideUp of
-        True: TAnimator.AnimateFloatWait(AImg2, 'Position.Y', 0, C_SLIDE_SPEED);
-        False: TAnimator.AnimateFloatWait(AImg2, 'Position.X', 0, C_SLIDE_SPEED);
-      end;
-
-
-      AFrom.Hide;
-      ATo.RemoveObject(AImg1);
-
-      ATo.RemoveObject(AImg2);
-    end
-    else
-    begin
-      AImg1.SetBounds(0, 0, ATo.Width, ATo.Height);
-      case ASlideUp of
-        False: AImg2.SetBounds(0-AFrom.Width/2, 0, AFrom.Width, AFrom.Height);
-      end;
-
-
-      ATo.AddObject(AImg2);
-      ATo.AddObject(AImg1);
-
-      ATo.Show;
-      Application.ProcessMessages;
-
-      case ASlideUp of
-        //True: TAnimator.AnimateFloat(AImg2, 'Position.Y', 0, 1*0.3);
-        False: TAnimator.AnimateFloat(AImg2, 'Position.X', 0, C_SLIDE_SPEED);
-
-      end;
-
-      if ASlideUp then
-      begin
-        ATo.RemoveObject(AImg2);
-        Application.ProcessMessages;
-      end;
-
-      case ASlideUp of
-        True: TAnimator.AnimateFloatWait(AImg1, 'Position.Y', AImg1.Height, C_SLIDE_SPEED);
-        False: TAnimator.AnimateFloatWait(AImg1, 'Position.X', AImg1.Width, C_SLIDE_SPEED);
-      end;
-
-
-      AFrom.Hide;
-      ATo.RemoveObject(AImg1);
-      ATo.RemoveObject(AImg2);
-    end;
-  finally
-    AImg1.Free;
-    AImg2.Free;
-  end;
-end;
 
 procedure TksFormStack.Clear(ARootForm: TCommonCustomForm);
 var
@@ -189,7 +92,7 @@ end;
 constructor TksFormStack.Create;
 begin
   inherited;
-  FStack := TList<TksFormStackTransition>.Create;
+  FStack := TObjectList<TksFormStackTransition>.Create;
   FUpdating := False;
 end;
 
@@ -215,19 +118,8 @@ begin
   try
     if FStack.Count > 1 then
     begin
-      //if FStack.Last.FType = ttNone then
-      //begin
-
-        FStack[FStack.Count-2].FForm.Show;
-        FStack.Last.FForm.Hide;
-
-      //end
-      {else
-        AnimateForms(FStack.Last.FForm,
-                     FStack[FStack.Count-2].FForm,
-                     True,
-                     FStack.Last.FType = ttSlideUpFromBottom);
-                                   }
+      FStack[FStack.Count-2].FForm.Show;
+      FStack.Last.FForm.Hide;
 
       AItem := FStack.Last;
       FStack.Remove(FStack.Last);
@@ -241,7 +133,6 @@ begin
 end;
 
 procedure TksFormStack.Push(AForm: TCustomForm;
-                            //const ADirection: TksFormStackTransitionType = ttSlideInFromRight;
                             const AParams: TStrings = nil);
 var
   ATran: TksFormStackTransition;
@@ -260,14 +151,7 @@ begin
       AForm.Height := FStack.Last.FForm.Height;
     end;
 
-   { if ADirection <> ttNone then
-    begin
-      AForm.Show;
-      AForm.Hide;
-    end;}
-
     HideKeyboard;
-
 
     ALast := nil;
     if FStack.Count > 1 then
@@ -321,10 +205,8 @@ end;
 initialization
 
   GlobalFormStack := TksFormStack.Create;
-  Bmp1 := nil; //TBitmap.Create;
-  Bmp2 := nil; //TBitmap.Create;
-  //Bmp1.BitmapScale := 2;
-  //Bmp2.BitmapScale := 2;
+  Bmp1 := nil;
+  Bmp2 := nil;
 
 finalization
 

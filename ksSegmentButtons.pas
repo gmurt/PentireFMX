@@ -1,10 +1,10 @@
 {*******************************************************************************
 *                                                                              *
-*  TksSegmentButtons - Segment button selection component                      *
+*  PentireFMX                                                                  *
 *                                                                              *
-*  https://bitbucket.org/gmurt/kscomponents                                    *
+*  https://github.com/gmurt/PentireFMX                                         *
 *                                                                              *
-*  Copyright 2017 Graham Murt                                                  *
+*  Copyright 2020 Graham Murt                                                  *
 *                                                                              *
 *  email: graham@kernow-software.co.uk                                         *
 *                                                                              *
@@ -17,7 +17,7 @@
 *  Unless required by applicable law or agreed to in writing, software         *
 *  distributed under the License is distributed on an "AS IS" BASIS,           *
 *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.    *
-*  See the License for the specific language governing permissions and         *
+*  See the License forthe specific language governing permissions and          *
 *  limitations under the License.                                              *
 *                                                                              *
 *******************************************************************************}
@@ -120,7 +120,6 @@ type
     FOnSelectSegment: TksSelectSegmentButtonEvent;
     FChanged: Boolean;
     FMouseUpCalled: Boolean;
-    procedure UpdateButtons;
     procedure SetItemIndex(const Value: integer);
     procedure SetSegments(const Value: TksSegmentButtonCollection);
     procedure SetBackgroundColor(const Value: TAlphaColor);
@@ -140,6 +139,7 @@ type
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
     procedure Assign(Source: TPersistent); override;
+    procedure UpdateButtons;
     procedure SelectSegmentByText(AText: string);
     property Selected: TKsSegmentButton read GetSelected;
     property SelectedID: string read GetSelectedID write SetSelectedID;
@@ -178,7 +178,7 @@ uses SysUtils,  Math, FMX.Forms,  FMX.TextLayout;
 
 procedure Register;
 begin
-  RegisterComponents('Kernow Software FMX', [TksSegmentButtons]);
+  RegisterComponents('Pentire FMX', [TksSegmentButtons]);
 end;
 
 function GetColorOrDefault(AColor, ADefaultIfNull: TAlphaColor): TAlphaColor;
@@ -391,27 +391,6 @@ begin
   end;
 end;
 
-{
-procedure TksSegmentButtons.MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Single);
-begin
-  inherited;
-  ItemIndex := Min(Trunc(X / FBtnWidth), Segments.Count-1);
-  FMouseDown := True;
-end;  }
-        (*
-procedure TksSegmentButtons.MouseUp(Button: TMouseButton; Shift: TShiftState; X,
-  Y: Single);
-begin
-  {$IFDEF MSWINDOWS}
-  if FMouseDown then
-  begin
-    Tap(PointF(x, y));
-  end;
-  {$ENDIF}
-  FMouseDown := False;
-  inherited;
-end;    *)
-
 procedure TksSegmentButtons.Paint;
 begin
   inherited;
@@ -453,26 +432,7 @@ begin
 
           with FSegments[ICount].FButton do
           begin
-           (* IsPressed := False;
 
-            if ICount = 0 then s := 'toolbuttonleft';
-            if ICount > 0 then s := 'toolbuttonmiddle';
-            if ICount = FSegments.Count-1 then s := 'toolbuttonright';
-
-
-            {$IFDEF ANDROID}
-            //StyleLookup := 'listitembutton';
-            //Height := 30;
-            {$ELSE}
-            //FSegments[ICount].FButton.StyleLookup := s;
-
-            //StaysPressed := ICount = FItemIndex;
-
-            //GroupName := FGroupID;
-
-            //TintColor := FTintColor;
-
-                                  *)
             Index := ICount;
 
             if Selected <> nil then
@@ -485,15 +445,7 @@ begin
             Width := FBtnWidth;
             Height := 34;
 
-            {TextSettings.FontColorForState.Focused := FTintColor;
-            TextSettings.FontColorForState.Active := FTintColor;
-            TextSettings.FontColorForState.Normal := FTintColor;
-            TextSettings.FontColorForState.Pressed := FBackgroundColor;}
             Text := FSegments[ICount].Text;
-
-            //TextSettings.FontColor := FTintColor;
-
-           // {$ENDIF}
             Position.Y := (Self.Height - Height) / 2;
             Position.X := (i * FBtnWidth)+8;
 
@@ -641,23 +593,6 @@ begin
   Stored := False;
   HitTest := False;
 end;
-              (*
-procedure TksSegmentSpeedButton.MouseDown(Button: TMouseButton;
-  Shift: TShiftState; X, Y: Single);
-begin
-  inherited;
-  //if HitTest = False then
-  //  Exit;
-
-  {if FOwner.ItemIndex <> FIndex then
-  begin
-    HitTest := False;
-    Application.ProcessMessages;
-    FOwner.ItemIndex := FIndex;
-    FOwner.DoSelectSegment;
-    HitTest := True;
-  end;  }
-end;    *)
 
 procedure RenderText(ACanvas: TCanvas; x, y, AWidth, AHeight: single;
   AText: string; AFont: TFont; ATextColor: TAlphaColor; AWordWrap: Boolean;
@@ -719,11 +654,8 @@ begin
     Canvas.Fill.Color := GetColorOrDefault(FOwner.TintColor, claDodgerblue);
 
   Canvas.Font.Size := FOwner.FontSize;
-  //ShowMessage(fowner.FontSize.ToString);
-  RenderText(Canvas, ClipRect, FText, Canvas.Font, Canvas.Fill.Color, False, TTextAlign.Center, TTextAlign.Center, TTextTrimming.Character);
 
-  //if FBadge > 0 then
-  //  GenerateBadge(Canvas, PointF(ClipRect.Right-20, ClipRect.Top-6), FBadge, claRed, claWhite);
+  RenderText(Canvas, ClipRect, FText, Canvas.Font, Canvas.Fill.Color, False, TTextAlign.Center, TTextAlign.Center, TTextTrimming.Character);
 end;
 
 procedure TksSegmentSpeedButton.SetBadge(const Value: integer);

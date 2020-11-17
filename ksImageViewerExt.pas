@@ -1,6 +1,6 @@
 {*******************************************************************************
 *                                                                              *
-*  TksImageViewerExt                                                           *
+*  PentireFMX                                                                  *
 *                                                                              *
 *  https://github.com/gmurt/PentireFMX                                         *
 *                                                                              *

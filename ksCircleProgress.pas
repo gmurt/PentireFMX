@@ -1,26 +1,26 @@
-{ *******************************************************************************
-	*                                                                              *
-	*  TksCircleProgress - Circular Progress Component                             *
-	*                                                                              *
-	*  https://bitbucket.org/gmurt/kscomponents                                    *
-	*                                                                              *
-	*  Copyright 2017 Graham Murt                                                  *
-	*                                                                              *
-	*  email: graham@kernow-software.co.uk                                         *
-	*                                                                              *
-	*  Licensed under the Apache License, Version 2.0 (the "License");             *
-	*  you may not use this file except in compliance with the License.            *
-	*  You may obtain a copy of the License at                                     *
-	*                                                                              *
-	*    http://www.apache.org/licenses/LICENSE-2.0                                *
-	*                                                                              *
-	*  Unless required by applicable law or agreed to in writing, software         *
-	*  distributed under the License is distributed on an "AS IS" BASIS,           *
-	*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.    *
-	*  See the License for the specific language governing permissions and         *
-	*  limitations under the License.                                              *
-	*                                                                              *
-	******************************************************************************* }
+{*******************************************************************************
+*                                                                              *
+*  PentireFMX                                                                  *
+*                                                                              *
+*  https://github.com/gmurt/PentireFMX                                         *
+*                                                                              *
+*  Copyright 2020 Graham Murt                                                  *
+*                                                                              *
+*  email: graham@kernow-software.co.uk                                         *
+*                                                                              *
+*  Licensed under the Apache License, Version 2.0 (the "License");             *
+*  you may not use this file except in compliance with the License.            *
+*  You may obtain a copy of the License at                                     *
+*                                                                              *
+*    http://www.apache.org/licenses/LICENSE-2.0                                *
+*                                                                              *
+*  Unless required by applicable law or agreed to in writing, software         *
+*  distributed under the License is distributed on an "AS IS" BASIS,           *
+*  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.    *
+*  See the License forthe specific language governing permissions and          *
+*  limitations under the License.                                              *
+*                                                                              *
+*******************************************************************************}
 
 unit ksCircleProgress;
 
@@ -35,9 +35,9 @@ type
   [ComponentPlatformsAttribute(
     pidWin32 or
     pidWin64 or
-    {$IFDEF XE8_OR_NEWER} pidiOSDevice32 or pidiOSDevice64 {$ELSE} pidiOSDevice {$ENDIF} or
-    {$IFDEF XE10_3_OR_NEWER} pidiOSSimulator32 or pidiOSSimulator64 {$ELSE} pidiOSSimulator {$ENDIF} or
-    {$IFDEF XE10_3_OR_NEWER} pidAndroid32Arm or pidAndroid64Arm {$ELSE} pidAndroid {$ENDIF}
+    pidiOSDevice32 or pidiOSDevice64 or
+    pidiOSSimulator32 or pidiOSSimulator64 or
+    pidAndroid32Arm or pidAndroid64Arm
     )]
 
 	TksCircleProgress = class(TControl)
@@ -102,7 +102,7 @@ const
 
 procedure Register;
 begin
-	RegisterComponents('PentireFMX', [TksCircleProgress]);
+	RegisterComponents('Pentire FMX', [TksCircleProgress]);
 end;
 
 { TksCircleProgress }
@@ -179,11 +179,9 @@ begin
 
 		AThickness := Round(FThickness * AScale);
 
-		// FBitmap.Canvas.BeginScene;
 		FBitmap.Canvas.Stroke.Thickness := 4;
 		FBitmap.Canvas.Stroke.Color := FBackgroundColor;
 		FBitmap.Canvas.Stroke.Kind := TBrushKind.Solid;
-		// FBitmap.Canvas.EndScene;
 		while AAngle < 360 do
 		begin
 

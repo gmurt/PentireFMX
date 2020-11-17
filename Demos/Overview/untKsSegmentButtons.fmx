@@ -1,0 +1,131 @@
+object frmKsSegmentButtons: TfrmKsSegmentButtons
+  Left = 0
+  Top = 0
+  Caption = 'Form1'
+  ClientHeight = 480
+  ClientWidth = 598
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  DesignerMasterStyle = 2
+  object ksToolbar1: TksToolbar
+    Font.Size = 16.000000000000000000
+    Text = 'TksSegmentButtons'
+    Size.Width = 598.000000000000000000
+    Size.Height = 44.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    BackButtonText = 'Back'
+    TintColor = xFFF9F9F9
+    OnMenuButtonClick = ksToolbar1MenuButtonClick
+  end
+  object ToolBar1: TToolBar
+    Align = Bottom
+    Position.Y = 436.000000000000000000
+    Size.Width = 598.000000000000000000
+    Size.Height = 44.000000000000000000
+    Size.PlatformDefault = False
+    StyleLookup = 'bottomtoolbar'
+    TabOrder = 2
+  end
+  object ksSegmentButtons1: TksSegmentButtons
+    Align = Top
+    ItemIndex = 0
+    Position.Y = 44.000000000000000000
+    Segments = <
+      item
+        ID = ''
+        Text = 'Button 1'
+        BadgeValue = 0
+      end
+      item
+        ID = ''
+        Text = 'Button 2'
+        BadgeValue = 0
+      end
+      item
+        ID = ''
+        Text = 'Button 3'
+        BadgeValue = 0
+      end>
+    Size.Width = 598.000000000000000000
+    Size.Height = 70.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object ksSegmentButtons2: TksSegmentButtons
+    Align = Top
+    ItemIndex = 0
+    Position.Y = 114.000000000000000000
+    TintColor = claGreen
+    Segments = <
+      item
+        ID = ''
+        Text = 'Button 1'
+        BadgeValue = 0
+      end
+      item
+        ID = ''
+        Text = 'Button 2'
+        BadgeValue = 0
+      end>
+    Size.Width = 598.000000000000000000
+    Size.Height = 70.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object ksSegmentButtons3: TksSegmentButtons
+    Align = Top
+    ItemIndex = 0
+    Position.Y = 184.000000000000000000
+    TintColor = claFirebrick
+    Segments = <
+      item
+        ID = ''
+        Text = 'Button 1'
+        BadgeValue = 0
+      end
+      item
+        ID = ''
+        Text = 'Button 2'
+        BadgeValue = 0
+      end
+      item
+        ID = ''
+        Text = 'Button 3'
+        BadgeValue = 0
+      end
+      item
+        ID = ''
+        Text = 'Button 4'
+        BadgeValue = 0
+      end>
+    Size.Width = 598.000000000000000000
+    Size.Height = 70.000000000000000000
+    Size.PlatformDefault = False
+  end
+  object ksSegmentButtons4: TksSegmentButtons
+    Align = Top
+    ItemIndex = 0
+    Position.Y = 254.000000000000000000
+    TintColor = claDarkorange
+    BackgroundColor = claWhite
+    Segments = <
+      item
+        ID = ''
+        Text = 'Custom'
+        BadgeValue = 0
+      end
+      item
+        ID = ''
+        Text = 'Background'
+        BadgeValue = 0
+      end
+      item
+        ID = ''
+        Text = 'Colour'
+        BadgeValue = 0
+      end>
+    Size.Width = 598.000000000000000000
+    Size.Height = 70.000000000000000000
+    Size.PlatformDefault = False
+  end
+end

@@ -1,0 +1,118 @@
+object frmKsTabControl: TfrmKsTabControl
+  Left = 0
+  Top = 0
+  Caption = 'Form1'
+  ClientHeight = 480
+  ClientWidth = 640
+  FormFactor.Width = 320
+  FormFactor.Height = 480
+  FormFactor.Devices = [Desktop]
+  DesignerMasterStyle = 2
+  object ksToolbar1: TksToolbar
+    Font.Size = 16.000000000000000000
+    Text = 'TksTabControl'
+    Size.Width = 640.000000000000000000
+    Size.Height = 44.000000000000000000
+    Size.PlatformDefault = False
+    TabOrder = 0
+    BackButtonText = 'Back'
+    TintColor = xFFF9F9F9
+    OnMenuButtonClick = ksToolbar1MenuButtonClick
+  end
+  object ksTabControl1: TksTabControl
+    Align = Client
+    TabIndex = 0
+    Size.Width = 640.000000000000000000
+    Size.Height = 436.000000000000000000
+    Size.PlatformDefault = False
+    HasIosHomeBar = True
+    object ksTabItem0: TksTabItem
+      Text = 'ksTabItem0'
+      Icon.PNG = {
+        89504E470D0A1A0A0000000D49484452000000320000003208060000001E3F88
+        B1000000017352474200AECE1CE90000000467414D410000B18F0BFC61050000
+        0132494441546843ED99E111C2200C85AB4EE10E8EE14EAEE2183A483B82AB68
+        C2913B8E0B88947A0F9AEFEE09A66943A4AFFDE154C8953493DE5E3CE7586B36
+        AF135E3C2CD29ACDEBC84585F87B2BAAEB1CFDD83DDC487C5F6A4AA1E5AE510A
+        2D57C46B773EFAD64428413BD65282764CD37CF01386E729E29C92736AA8A9E3
+        7286F248098B1FB97BF99524D6925575C293526CFEA2F2D4D471B97CEFF18469
+        7DBFFF0BB7FEDD79049E611A093DD23543EE883DB510B046D0D8452377121B09
+        490F924AEEA9257134D475963412C74310725CDCCC8E863582061B276B2240C6
+        367BC98EC4F110841C1737B3A3618DA0C1C6C99A0890B1CD5EB223713C0421C7
+        C5CDEC68582368B071B22602E467B33FFD8844724DB91DE9057BFC42325423F1
+        7FDBBD89594EF4F1225D48678E74086DC474FB009ECB06F1F93CDDB200000000
+        49454E44AE426082}
+      StandardIcon = Calendar
+      TabIndex = 0
+      object q: TLayout
+        Align = Client
+        Padding.Left = 20.000000000000000000
+        Padding.Top = 20.000000000000000000
+        Padding.Right = 20.000000000000000000
+        Padding.Bottom = 20.000000000000000000
+        Size.Width = 640.000000000000000000
+        Size.Height = 366.000000000000000000
+        Size.PlatformDefault = False
+        TabOrder = 0
+        object Button1: TButton
+          Align = Top
+          CanFocus = False
+          Margins.Bottom = 16.000000000000000000
+          Position.X = 20.000000000000000000
+          Position.Y = 20.000000000000000000
+          Size.Width = 600.000000000000000000
+          Size.Height = 30.000000000000000000
+          Size.PlatformDefault = False
+          StyleLookup = 'listitembutton'
+          TabOrder = 0
+          Text = 'ADD RANDOM TAB'
+          OnClick = Button1Click
+        end
+        object ksSegmentButtons1: TksSegmentButtons
+          Align = Top
+          ItemIndex = 0
+          Margins.Bottom = 16.000000000000000000
+          Position.X = 20.000000000000000000
+          Position.Y = 132.000000000000000000
+          Segments = <
+            item
+              ID = ''
+              Text = 'ALIGN BOTTOM'
+              BadgeValue = 0
+            end
+            item
+              ID = ''
+              Text = 'ALIGN TOP'
+              BadgeValue = 0
+            end>
+          Size.Width = 600.000000000000000000
+          Size.Height = 50.000000000000000000
+          Size.PlatformDefault = False
+          OnSelectSegment = ksSegmentButtons1SelectSegment
+        end
+        object ksSegmentButtons2: TksSegmentButtons
+          Align = Top
+          ItemIndex = 0
+          Margins.Bottom = 16.000000000000000000
+          Position.X = 20.000000000000000000
+          Position.Y = 66.000000000000000000
+          Segments = <
+            item
+              ID = ''
+              Text = 'LIGHT'
+              BadgeValue = 0
+            end
+            item
+              ID = ''
+              Text = 'DARK'
+              BadgeValue = 0
+            end>
+          Size.Width = 600.000000000000000000
+          Size.Height = 50.000000000000000000
+          Size.PlatformDefault = False
+          OnSelectSegment = ksSegmentButtons2SelectSegment
+        end
+      end
+    end
+  end
+end

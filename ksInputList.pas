@@ -1,8 +1,8 @@
 ﻿{*******************************************************************************
 *                                                                              *
-*  TksInputList                                                                *
+*  PentireFMX                                                                  *
 *                                                                              *
-*  https://github.com/gmurt/TksInputList                                    *
+*  https://github.com/gmurt/PentireFMX                                         *
 *                                                                              *
 *  Copyright 2020 Graham Murt                                                  *
 *                                                                              *
@@ -290,7 +290,6 @@ type
 
   public
     constructor Create(AInputList: TksInputList); override;
-    //property Switch: TSwitch read GetSwitch;
     property IsChecked: Boolean read GetIsChecked write SetIsChecked;
   end;
 
@@ -462,7 +461,6 @@ type
     FCanvas: TksInputListCanvas;
     FItems: TksInputListItems;
     FLastScrollPos: single;
-    FScrollMonitor: TThread;
     FControlsVisible: Boolean;
     FUpdateCount: integer;
     FLastScrollChange: TDateTime;
@@ -830,64 +828,56 @@ begin
 end;
 
 procedure TksInputList.CreateScrollMonitor;
-var
-  Thread: TThread;
 begin
-  Thread := TThread.CreateAnonymousThread (
+  //FScrollMonitor := TThread.CreateAnonymousThread (
+  //  procedure
+  //  begin
+
+  TTask.Run(
     procedure
     begin
       while not Application.Terminated do
       begin
         sleep (200);
-        if (FItems.Count > 0) and (MilliSecondsBetween(FLastScrollPos, Now) > 300) then
-        begin
-          if (FLastScrollPos = VScrollBarValue) and (FControlsVisible = False) then
-          begin
-            TThread.Synchronize(nil,
-              procedure
-              begin
-                ShowOnScreenControls;
-              end);
-          end
+        try
+          if Application = nil then
+            Exit;
 
+          if FItems = nil then
+            Exit;
+          if (FItems.Count > 0) then
+          begin
+            if (FLastScrollPos = VScrollBarValue) and (FControlsVisible = False) then
+            begin
+              TThread.Queue(nil,
+                procedure
+                begin
+                  ShowOnScreenControls;
+                end);
+            end
+
+          end;
+          FLastScrollPos := VScrollBarValue;
+        except
+          // application terminated?
         end;
-        FLastScrollPos := VScrollBarValue;
       end;
     end
   );
-  Thread.start;
+  //  end
+  //);
+  //FScrollMonitor.Start;
 end;
-
-{begin
-  FScrollMonitor := TTask.Create (procedure ()
-  begin
-    while not Application.Terminated do
-    begin
-      sleep (100);
-      if (FItems.Count > 0) and (MilliSecondsBetween(FLastScrollPos, Now) > 300) then
-      begin
-        if (FLastScrollPos = VScrollBarValue) and (FControlsVisible = False) then
-        begin
-          TThread.Synchronize(nil,
-            procedure
-            begin
-              ShowOnScreenControls;
-            end);
-        end
-
-      end;
-      FLastScrollPos := VScrollBarValue;
-    end;
-  end);
-  FScrollMonitor.Start;
-end;         }
 
 destructor TksInputList.Destroy;
 var
   AItem: TksBaseInputListItem;
   c: TPresentedControl;
 begin
-  FScrollMonitor := nil;
+  //if FScrollMonitor <> nil then
+   // FScrollMonitor.Free;
+
+  //Application.ProcessMessages;
 
   for AItem in FItems do
   begin
@@ -1098,57 +1088,6 @@ begin
               Application.ProcessMessages;
             end
           );
-
-
-        {aTask := TTask.Create (procedure ()
-        begin
-          Sleep(100);
-
-          ATapEvent := ((FMousePos.Y) > (FMouseDownPos.Y - 10)) and ((FMousePos.Y) < (FMouseDownPos.Y + 10));
-          TThread.Synchronize(nil,procedure
-            begin
-              if FMouseDown then
-                FMouseDownItem.MouseDown;
-            end
-          );    }
-
-
-
-          (*if ATapEvent then
-          begin
-            if FMouseDown then
-            begin
-
-            TThread.Synchronize(nil,procedure
-                        begin
-                          if FMouseDown then
-                          begin
-                            FMouseDownItem.MouseDown;
-                          end
-                          else
-                          begin
-                            FMouseDownItem.MouseDown;
-                            {$IFDEF IOS}
-                            Application.ProcessMessages;
-                            Sleep(50);
-                            {$ENDIF}
-                            FMouseDownItem.Selected := False;
-                          end;
-                        end);
-            Sleep(300);
-            if FMouseDown then
-            begin
-
-              // long tap event...
-              FLongTap := True;
-              TThread.Synchronize(nil,procedure
-                          begin
-                            if Assigned(OnItemLongTapClick) then
-                              OnItemLongTapClick(Self, FMouseDownItem, FMouseDownItem.ID);
-                          end);
-            end;
-          end;
-                 *)
         end);
         aTask.Start;
       end;
@@ -1313,28 +1252,19 @@ procedure TksInputList.ScrollToBottom(const AAnimated: Boolean = False);
 var
   ATime: Single;
 begin
-  {ATask := TTask.Create (procedure ()
-  begin
-    TThread.Synchronize(nil,procedure
-    begin    }
-      AniCalculations.UpdatePosImmediately(True);
+    AniCalculations.UpdatePosImmediately(True);
+    case AAnimated of
+      True: ATime := 0.4;
+      False: ATime := 0;
+    end;
+    if VScrollBar <> nil then
+    begin
       case AAnimated of
-        True: ATime := 0.4;
-        False: ATime := 0;
+        False: VScrollBar.Value := VScrollBar.Max;
+        True: TAnimator.AnimateFloat(Self, 'VScrollBar.Value', {FCanvas.Height-Height} VScrollBar.Max, ATime, TAnimationType.InOut, TInterpolationType.Quadratic);
       end;
 
-      if VScrollBar <> nil then
-      begin
-        //VScrollBar.Max
-        case AAnimated of
-          False: VScrollBar.Value := VScrollBar.Max;
-          True: TAnimator.AnimateFloat(Self, 'VScrollBar.Value', {FCanvas.Height-Height} VScrollBar.Max, ATime, TAnimationType.InOut, TInterpolationType.Quadratic);
-        end;
-
-      end;
-   { end);
-  end);
-  ATask.Start;   }
+    end;
 end;
 
 procedure TksInputList.ScrollToTop(const AAnimated: Boolean = False);
@@ -1528,10 +1458,6 @@ begin
     ACanvas.DrawRect(FImageRect, C_CORNER_RADIUS, C_CORNER_RADIUS, AllCorners, 1);
     {$ENDIF}
 
-    {ACanvas.Stroke.Color := claBlue;
-    ACanvas.Stroke.Thickness := 2;
-    ACanvas.DrawRect(ABorderRect, 0, 0, AllCorners, 1);}
-
     if Assigned(FksInputList.OnPaintItem) then
       FksInputList.OnPaintItem(Self, ACanvas, r, FksInputList.Items.IndexOf(Self));
 
@@ -1585,10 +1511,7 @@ begin
   Result := 0;
   if FAccessory <> atNone then
   begin
-    //Result := AAccessoriesList.ItemByAccessory[FAccessory].Bitmap.Width;
-    //{$IFDEF ANDROID}
     Result := 20;
-    //{$ENDIF}
     if AAddPadding then
       Result := Result + 4;
   end;
@@ -2113,7 +2036,6 @@ begin
     begin
       AItem := Items[ICount];
       if IntersectRect(AViewPort, AItem.FItemRect) then
-        //if (not ((AItem is TksInputListSeperator) and (ICount = Count-1))) and
         if (not ((AItem is TksInputListSeperator) and (ICount = 0))) then
           AItem.DrawSeparators(ACanvas,
                                True,
@@ -2247,10 +2169,6 @@ begin
   if Value <> FReadOnly then
   begin
     FReadOnly := Value;
-    //case Value of
-    //  True: Edit.StyleLookup := '';
-    //  False: Edit.StyleLookup := 'clearingeditstyle';
-    //end;
     Edit.CanFocus := not ReadOnly;
     Edit.HitTest := not ReadOnly;
     Edit.ReadOnly := ReadOnly;
@@ -2293,7 +2211,6 @@ begin
   inherited;
   FControl := CreateControl;
   FControl.Visible := True;
-  //FControl.Parent := TempForm;
   FControl.ApplyStyleLookup;
   FCached := TBitmap.Create;
   FFullWidthSelect := False;
@@ -2641,7 +2558,6 @@ begin
   
 
   FCombo := TComboBox.Create(nil);
-  //FksInputList.FBuffer.AddObject(FCombo);
   FItems := TStringList.Create;
   FShowSelection := True;
   FCombo.OnChange := DoSelectorChanged;
@@ -2688,13 +2604,6 @@ end;
 procedure TksInputListSelectorItem.LoadStructure(AJson: TJSONObject);
 begin
   inherited;
-{  FType := ksItemSelector;
-  if AJson.FindValue('type') <> nil then
-  begin
-    if AJson.Values['type'].Value = 'date' then FType := ksDateSelector;
-    if AJson.Values['type'].Value = 'time' then FType := ksTimeSelector;
-
-  end;  }
   FItems.CommaText := AJson.Values['items'].Value;
 end;
 
@@ -2842,7 +2751,6 @@ end;
 procedure TksInputListItem.UpdateRects;
 begin
   inherited UpdateRects;
-  //FImageRect := RectF(0, 0, FksInputList.Width, Height);
 end;
 
 { TksInputListImageItem }
@@ -2891,9 +2799,6 @@ begin
   if TPlatformServices.Current.SupportsPlatformService(IFMXPickerService, FPickerService) then
   begin
     FDateTimePicker := FPickerService.CreateDateTimePicker;
-    //FDatePicker.ShowMode := TDatePickerShowMode.Date;
-    //FTimePicker := FPickerService.CreateDateTimePicker;
-    //FTimePicker.ShowMode := TDatePickerShowMode.Time;
   end;
 end;
 
@@ -3122,11 +3027,7 @@ begin
     ATextLayout.Padding.Rect := RectF(0, 0, 0, 0);
     ATextLayout.Trimming := TTextTrimming.None;
 
-    //ATextLayout.TopLeft := PointF((GetScreenScale * 4), (GetScreenScale * 4));
     ATextLayout.TopLeft := PointF(APadding, APadding);
-
-    //if AEmojiOnly then
-    //  ATextLayout.TopLeft := PointF(8, -4);
 
     ATextLayout.MaxSize := PointF(FksInputList.Width * 0.7, MaxSingle);
     ATextLayout.EndUpdate;
@@ -3134,10 +3035,6 @@ begin
 
     APadding := (8);
     FCached.SetSize(Round(GetScreenScale*(ATextLayout.Width+(APadding*2))), Round(GetScreenScale*((ATextLayout.Height+(APadding*2)))));
-    //case AEmojiOnly of
-    //  True:  FCached.SetSize(Round(GetScreenScale*(ATextLayout.Width+APadding)), Round(GetScreenScale*((ATextLayout.Height))));
-    //  False: FCached.SetSize(Round(GetScreenScale*(ATextLayout.Width+APadding)), Round(GetScreenScale*((ATextLayout.Height+APadding))));
-    //end;
 
     FCached.Canvas.BeginScene(nil);
     try
@@ -3208,16 +3105,6 @@ begin
       Result := False;
       Exit;
     end;
-    {if (c.IsLetterOrDigit = True) or
-       (c.IsPunctuation = True) or
-       (c.IsSeparator = True) or
-       (c.IsSymbol = True) or
-       (c.IsWhiteSpace = True) or
-       (c.IsControl) then
-    begin
-      Result := False;
-      Exit;
-    end;}
   end;
 end;
 
@@ -3273,22 +3160,17 @@ end;
 
 procedure TksInputListChatItem.UpdateRects;
 begin
-  //Height := CalculateHeight;
   inherited UpdateRects;
 end;
 
 initialization
 
-  //TempForm := TForm.CreateNew(nil);
-
   AAccessoriesList := TInputListAccessoryImages.Create;
   ATextLayout :=  TTextLayoutManager.DefaultTextLayout.Create;
   AScreenScale := 0;
 
-
 finalization
 
-  //TempForm.Free;
   AAccessoriesList.Free;
   ATextLayout.Free;
 
