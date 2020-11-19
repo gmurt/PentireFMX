@@ -1,14 +1,7 @@
 # PentireFMX
 Firemonkey components for Delphi
 
-- TksInputList
-- TksImageViewerExt
-- TksChatList
-- TksSlideMenu
-- TksSlideMenu
-
-
-- TksInputList
+- TksInputList - Listview component which supports embedable controls
 
 ![2](https://user-images.githubusercontent.com/1161351/99692503-48c64300-2a82-11eb-85d2-06d98505de7e.jpg)
 
