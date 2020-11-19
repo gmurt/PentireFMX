@@ -22,5 +22,6 @@ Firemonkey components for Delphi
 
 - TksTabControl - Advanced tab control
 
-![4](https://user-images.githubusercontent.com/1161351/99692782-93e05600-2a82-11eb-8a4e-8864440fa3b9.jpg)
+![4](https://user-images.githubusercontent.com/1161351/99692960-c427f480-2a82-11eb-8c68-6418d1ebd785.jpg)
+
 
