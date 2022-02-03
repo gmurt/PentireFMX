@@ -531,7 +531,7 @@ end;
 function TksSegmentButtonCollection.Add: TKsSegmentButton;
 begin
   Result := inherited Add as TKsSegmentButton;
-  FSegmentButtons.UpdateButtons;
+  //FSegmentButtons.UpdateButtons;
 end;
 
 constructor TksSegmentButtonCollection.Create(AButtons: TKsSegmentButtons);

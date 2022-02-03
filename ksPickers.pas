@@ -30,7 +30,7 @@ interface
 {$DEFINE DPF}
 {$ENDIF}
 
-uses FMX.Pickers, Classes, FMX.Controls, System.Types
+uses FMX.Pickers, Classes, FMX.Controls, System.Types, SysUtils
   {$IFDEF DPF}
   ,DPF.iOS.UIActIonSheet
   {$ENDIF}
@@ -38,8 +38,8 @@ uses FMX.Pickers, Classes, FMX.Controls, System.Types
 
 type
   TksSelectPickerItemEvent = reference to procedure(Sender: TObject; AItem: string; AIndex: integer);
-  TksSelectPickerDateEvent = reference to procedure(Sender: TObject; ADate: TDateTime);
-  TksSelectPickerTimeEvent = reference to procedure(Sender: TObject; ATime: TDateTime);
+  TksSelectPickerDateTimeEvent = reference to procedure(Sender: TObject; ADate: TDateTime);
+  //TksSelectPickerTimeEvent = reference to procedure(Sender: TObject; ATime: TDateTime);
 
 
   TksPickerService = class
@@ -57,12 +57,14 @@ type
     {$ENDIF}
     FPickerService: IFMXPickerService;
 
+    FOnHide: TProc;
+
 
     FOnItemSelected: TksSelectPickerItemEvent;
-    FOnDateSelected: TksSelectPickerDateEvent;
-    FOnTimeSelected: TksSelectPickerTimeEvent;
+    FOnDateSelected: TksSelectPickerDateTimeEvent;
+    FOnTimeSelected: TksSelectPickerDateTimeEvent;
     {$IFDEF IOS}
-    FOnDateTimeSelected: TksSelectPickerTimeEvent;
+    FOnDateTimeSelected: TksSelectPickerDateTimeEvent;
     {$ENDIF}
     //FOnHide: TNotifyEvent;
     {$IFDEF DPF}
@@ -76,20 +78,24 @@ type
     {$IFDEF IOS}
     procedure DoDateTimeSelected(Sender: TObject; const ADateTime: TDateTime);
     {$ENDIF}
+    {$IFDEF DPF}
+    procedure DoActionSheetDismiss( Sender: TObject; ButtonIndex: Integer );
+    {$ENDIF}
+    procedure DoHide(Sender: TObject);
   public
     constructor Create; virtual;
     destructor Destroy; override;
-    procedure ShowActionSheet(AItems: array of string; ATitle: string; AOnSelect: TksSelectPickerItemEvent); overload;
-    procedure ShowActionSheet(AItems: TStrings; ATitle: string; AOnSelect: TksSelectPickerItemEvent); overload;
+    procedure ShowActionSheet(AItems: array of string; ATitle: string; AOnSelect: TksSelectPickerItemEvent; const AOnHide: TProc = nil); overload;
+    procedure ShowActionSheet(AItems: TStrings; ATitle: string; AOnSelect: TksSelectPickerItemEvent; const AOnHide: TProc = nil); overload;
     procedure ShowItemPicker(AParent: TControl; AItems: array of string; ATitle: string; AIndex: integer; AOnSelect: TksSelectPickerItemEvent); overload;
     procedure ShowItemPicker(AParent: TControl; AItems: TStrings; ATitle: string; AIndex: integer; AOnSelect: TksSelectPickerItemEvent; AOnHide: TNotifyEvent); overload;
     procedure ShowItemPicker(APoint: TPointF; AItems: TStrings; ATitle: string; AIndex: integer; AOnSelect: TksSelectPickerItemEvent); overload;
-    procedure ShowDatePicker(ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerDateEvent); overload;
-    procedure ShowDatePicker(AParent: TControl; ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerDateEvent); overload;
-    procedure ShowDatePicker(APoint: TPointF; ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerDateEvent); overload;
-    procedure ShowTimePicker(ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerTimeEvent);
+    procedure ShowDatePicker(ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerDateTimeEvent; AOnHide: TProc); overload;
+    procedure ShowDatePicker(AParent: TControl; ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerDateTimeEvent; AOnHide: TProc); overload;
+    procedure ShowDatePicker(APoint: TPointF; ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerDateTimeEvent; AOnHide: TProc); overload;
+    procedure ShowTimePicker(ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerDateTimeEvent);
 
-    procedure ShowDateTimePicker(ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerTimeEvent);
+    procedure ShowDateTimePicker(ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerDateTimeEvent);
 
     function CreateDatePicker: TCustomDateTimePicker;
     procedure HidePickers;//nst AForce: Boolean = False);
@@ -100,7 +106,7 @@ var
 
 implementation
 
-uses FMX.Platform, SysUtils, FMX.Forms,
+uses FMX.Platform, FMX.Forms,
   FMX.Types, System.UIConsts;
 
 { TksPickerService }
@@ -156,10 +162,30 @@ end;
 procedure TksPickerService.DoActionSheetButtonClick(Sender: TObject;
   ButtonIndex: Integer);
 begin
-  if ButtonIndex < FPickerITems.Count then
-    DoSelectItem(Sender, ButtonIndex);
+
+  TThread.CreateAnonymousThread(
+    procedure
+    begin
+      TThread.Synchronize(nil,
+        procedure
+        begin
+          if ButtonIndex < FPickerITems.Count then
+            DoSelectItem(Sender, ButtonIndex);
+
+        end
+      );
+    end
+  ).Start;
 end;
 
+{$ENDIF}
+
+{$IFDEF DPF}
+procedure TksPickerService.DoActionSheetDismiss(Sender: TObject;
+  ButtonIndex: Integer);
+begin
+  DoHide(Sender);
+end;
 {$ENDIF}
 
 procedure TksPickerService.DoDateSelected(Sender: TObject;
@@ -177,6 +203,13 @@ begin
     FOnDateTimeSelected(Self, ADateTime);
 end;
 {$ENDIF}
+
+
+procedure TksPickerService.DoHide(Sender: TObject);
+begin
+  if Assigned(FOnHide) then
+    FOnHide;
+end;
 
 procedure TksPickerService.DoTimeSelected(Sender: TObject;
   const ATime: TDateTime);
@@ -214,7 +247,7 @@ begin
 end;
 
 procedure TksPickerService.ShowActionSheet(AItems: array of string;
-  ATitle: string; AOnSelect: TksSelectPickerItemEvent);
+  ATitle: string; AOnSelect: TksSelectPickerItemEvent; const AOnHide: TProc = nil);
 var
   ICount: integer;
   AStrings: TStrings;
@@ -226,14 +259,14 @@ begin
     begin
       AStrings.Add(AItems[ICount]);
     end;
-    ShowActionSheet(AStrings, ATitle, AOnSelect);
+    ShowActionSheet(AStrings, ATitle, AOnSelect, AOnHide);
   finally
     FreeAndNil(AStrings);
   end;
 end;
 
 procedure TksPickerService.ShowActionSheet(AItems: TStrings; ATitle: string;
-  AOnSelect: TksSelectPickerItemEvent);
+  AOnSelect: TksSelectPickerItemEvent; const AOnHide: TProc = nil);
   {$IFDEF DPF}
 var
   ICount: integer;
@@ -252,6 +285,9 @@ begin
   FActionSheet.Buttons.Clear;
   FPickerITems.Assign(AItems);
 
+  FOnHide := AOnHide;
+  FPicker.OnHide := DoHide;
+
   for ICount := 0 to AItems.Count-1 do
   begin
     ABtn := FActionSheet.Buttons.Add;
@@ -268,21 +304,22 @@ begin
     Title := 'Cancel';
   end;
 
-
+  FActionSheet.OnDismiss := DoActionSheetDismiss;
   FActionSheet.ShowMessage;
   FActionSheet.OnClick := DoActionSheetButtonClick;
   {$ELSE}
-  ShowItemPicker(nil, AItems, '', -1, AOnSelect, nil);
+  ShowItemPicker(nil, AItems, '', -1, AOnSelect, DoHide);
   {$ENDIF}
 
 end;
 
 procedure TksPickerService.ShowDatePicker(AParent: TControl; ATitle: string;
-  ASelected: TDateTime; AOnSelect: TksSelectPickerDateEvent);
+  ASelected: TDateTime; AOnSelect: TksSelectPickerDateTimeEvent; AOnHide: TProc);
 begin
+  HidePickers;
   FOnDateSelected := AOnSelect;
 
-
+  FOnHide := AOnHide;
 
   FDatePicker := PickerService.CreateDatePicker;
 
@@ -291,33 +328,47 @@ begin
     ASelected := Date;
   FDatePicker.Date := ASelected;
   FDatePicker.Parent := AParent;
+  FDatePicker.OnHide := DoHide;
+
+  if AParent = nil then
+  begin
+    FDatePicker.AbsoluteTargetRect := RectF((Screen.ActiveForm.Width/2)-25,
+                                            (Screen.ActiveForm.Height/2)-25,
+                                            (Screen.ActiveForm.Width/2)+25,
+                                            (Screen.ActiveForm.Height/2));
+    FDatePicker.PreferedDisplayIndex := 1;
+  end;
+
   FDatePicker.Show;
 end;
 
-procedure TksPickerService.ShowDatePicker(APoint: TPointF; ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerDateEvent);
+procedure TksPickerService.ShowDatePicker(APoint: TPointF; ATitle: string; ASelected: TDateTime; AOnSelect: TksSelectPickerDateTimeEvent; AOnHide: TProc);
 begin
+  HidePickers;
   FOnDateSelected := AOnSelect;
+  FOnHide := AOnHide;
 
   FDatePicker := PickerService.CreateDatePicker;
   FDatePicker.OnDateChanged := DoDateSelected;
   if ASelected = 0 then
     ASelected := Date;
   FDatePicker.Date := ASelected;
+  FDatePicker.OnHide := DoHide;
+
   FDatePicker.AbsoluteTargetRect := RectF(APoint.X, APoint.Y, APoint.X, APoint.Y);
   FDatePicker.Show;
 end;
 
 procedure TksPickerService.ShowDatePicker(ATitle: string; ASelected: TDateTime;
-  AOnSelect: TksSelectPickerDateEvent);
+  AOnSelect: TksSelectPickerDateTimeEvent; AOnHide: TProc);
 begin
-  ShowDatePicker(nil, ATitle, ASelected, AOnSelect);
+  ShowDatePicker(nil, ATitle, ASelected, AOnSelect, AOnHide);
 end;
 
-
-
 procedure TksPickerService.ShowTimePicker(ATitle: string;
-  ASelected: TDateTime; AOnSelect: TksSelectPickerTimeEvent);
+  ASelected: TDateTime; AOnSelect: TksSelectPickerDateTimeEvent);
 begin
+  HidePickers;
   FOnTimeSelected := AOnSelect;
 
   FTimePicker := CreateDatePicker;
@@ -327,13 +378,19 @@ begin
   if ASelected = 0 then
     ASelected := EncodeTime(9,0,0,0);
   FTimePicker.Date := ASelected;
+  {$IFDEF MSWINDOWS}
+  FTimePicker.AbsoluteTargetRect := RectF(10,10,100,100);
+  {$ENDIF}
+
   FTimePicker.Show;
 end;
 
 
 procedure TksPickerService.ShowDateTimePicker(ATitle: string;
-  ASelected: TDateTime; AOnSelect: TksSelectPickerTimeEvent);
+  ASelected: TDateTime; AOnSelect: TksSelectPickerDateTimeEvent);
 begin
+  HidePickers;
+
   {$IFDEF IOS}
   FOnDateTimeSelected := AOnSelect;
 
@@ -347,7 +404,15 @@ begin
   {$ENDIF}
 
   {$IFDEF ANDROID}
-  ShowDatePicker(ATitle, ASelected, nil)
+  FOnDateSelected := AOnSelect;
+  FDatePicker := CreateDatePicker;
+  FDatePicker.OnDateChanged := DoDateSelected;
+  if ASelected = 0 then
+    ASelected := Trunc(Date)+EncodeTime(9,0,0,0);
+  FDatePicker.Date := ASelected;
+  FDatePicker.Show;
+
+  //ShowDatePicker(ATitle, ASelected, nil)
   {$ENDIF}
 end;
 
@@ -359,6 +424,7 @@ begin
 
   FPickerITems.Assign(AItems);
 
+  FPicker := CreateListPicker;
   FPicker.OnHide := AOnHide;
   FPicker.Values.Assign(AItems);
   FPicker.ItemIndex := AIndex;
@@ -366,7 +432,11 @@ begin
 
   FOnItemSelected := AOnSelect;
   FPicker.OnValueChanged := DoItemSelected;
+  {$IFDEF MSWINDOWS}
+  FPicker.AbsoluteTargetRect := RectF(10,10,100,100);
+  {$ENDIF}
   FPicker.Show;
+
 
   FPrevPicker := FPicker;
 end;

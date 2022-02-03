@@ -74,6 +74,7 @@ type
     procedure UpdateMenu;
     procedure OffsetScreenClick(Sender: TObject);
     procedure DoItemClick(Sender: TObject; AItem: TksBaseInputListItem; AID: string);
+    procedure DoAfterCloseMenu(ATargetForm: TCommonCustomForm);
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -93,11 +94,10 @@ implementation
 
 
 
-uses SysUtils, FMX.Platform, System.UIConsts, FMX.Types, FMX.Ani, FMX.Utils, System.UITypes, ksFormStack,
-  System.Threading;
+uses SysUtils, FMX.Platform, System.UIConsts, FMX.Types, FMX.Ani, FMX.Utils, System.UITypes, ksFormStack;
 
 const
-  C_MENU_SLIDE_SPEED  = 0.15;
+  C_MENU_SLIDE_SPEED  = 0.2;
   C_MENU_WIDTH        = 250;
 
 var
@@ -129,21 +129,17 @@ procedure GenerateFormBitmap(AForm: TCommonCustomForm; ABmp: TBitmap);
 var
   AScale: single;
 begin
-  TThread.Synchronize (TThread.CurrentThread,
-      procedure ()
-      begin
-        AScale := GetScreenScale;
-        if ABmp.IsEmpty then
-        begin
-          ABmp.BitmapScale := AScale;
-          ABmp.Width := Round(AForm.ClientWidth * AScale);
-          ABmp.Height := Round(AForm.ClientHeight * AScale);
-        end;
-        ABmp.Clear(claWhite);
-        ABmp.Canvas.BeginScene;
-        TForm(AForm).PaintTo(ABmp.Canvas);
-        ABmp.Canvas.EndScene;
-      end);
+  AScale := GetScreenScale;
+  if ABmp.IsEmpty then
+  begin
+    ABmp.BitmapScale := AScale;
+    ABmp.Width := Round(AForm.ClientWidth * AScale);
+    ABmp.Height := Round(AForm.ClientHeight * AScale);
+  end;
+  ABmp.Clear(claWhite);
+  ABmp.Canvas.BeginScene;
+  TForm(AForm).PaintTo(ABmp.Canvas);
+  ABmp.Canvas.EndScene;
 end;
 
 procedure ReplaceOpaqueColor(ABmp: TBitmap; Color : TAlphaColor);
@@ -153,7 +149,7 @@ var
   PixelWhiteColor: TAlphaColor;
   C: PAlphaColorRec;
 begin
-  TThread.Synchronize(nil,procedure
+  TThread.Synchronize(TThread.CurrentThread,procedure
                     var
                     x,y: Integer;
                     begin
@@ -181,45 +177,15 @@ end;
 
 { TksSideMenu }
 
-procedure TksSideMenu.CloseMenu(ATargetForm: TCommonCustomForm);
+procedure TksSideMenu.DoAfterCloseMenu(ATargetForm: TCommonCustomForm);
+var
+  ATransitionForm: ITransitionForm;
 begin
-  if ATargetForm = nil then
-    ATargetForm := FCallingForm;
-
-  if ATargetForm <> FCallingForm then
-  begin
-    ATargetForm.SetBounds(FCallingForm.Bounds);
-    if Assigned(FBeforeShowForm) then
-      FBeforeShowForm(Self, ATargetForm);
-
-    GenerateFormBitmap(ATargetForm, FCachedForm);
-    FImage.Bitmap := FCachedForm;
-  end;
-
-  FImage.HitTest := False;
-  FMenu.HitTest := False;
-  FImage.Visible := True;
-  FMenu.Visible := True;
-  {$IFDEF ANDROID}
-  TAnimator.AnimateFloat(FImage, 'Position.X', 0, C_MENU_SLIDE_SPEED);
-  TTask.Run(
-    procedure
-    begin
-      Sleep(Round(C_MENU_SLIDE_SPEED*1000));
-      FImage.HitTest := True;
-      FMenu.HitTest := True;
-    end
-  );
   FImage.HitTest := True;
   FMenu.HitTest := True;
-  {$ELSE}
-  TAnimator.AnimateFloatWait(FImage, 'Position.X', 0, C_MENU_SLIDE_SPEED);
-  FImage.HitTest := True;
-  FMenu.HitTest := True;
-  {$ENDIF}
+
 
   ATargetForm.Show;
-  Application.ProcessMessages;
   if Assigned(FAfterShowForm) then
     FAfterShowForm(Self, ATargetForm);
 
@@ -231,6 +197,71 @@ begin
     FCallingForm.Hide;
 
   GlobalFormStack.Clear(ATargetForm);
+
+  if Supports(ATargetForm, ITransitionForm, ATransitionForm) then
+    ATransitionForm.AfterTransitionIntoView(True, nil);
+end;
+
+procedure TksSideMenu.CloseMenu(ATargetForm: TCommonCustomForm);
+var
+  ATransitionForm: ITransitionForm;
+begin
+  if ATargetForm = nil then
+    ATargetForm := FCallingForm;
+
+  if ATargetForm <> FCallingForm then
+  begin
+    ATargetForm.SetBounds(FCallingForm.Bounds);
+    if Assigned(FBeforeShowForm) then
+      FBeforeShowForm(Self, ATargetForm);
+
+    if Supports(ATargetForm, ITransitionForm, ATransitionForm) then
+      ATransitionForm.BeforeTransitionIntoView(True, nil);
+
+
+    GenerateFormBitmap(ATargetForm, FCachedForm);
+    FImage.Bitmap := FCachedForm;
+  end;
+
+  FImage.HitTest := False;
+  FMenu.HitTest := False;
+  FImage.Visible := True;
+  FMenu.Visible := True;
+
+  TThread.CreateAnonymousThread(
+    procedure
+    begin
+      Sleep(100);
+      TThread.Synchronize(nil,
+        procedure
+        begin
+          {$IFNDEF ANDROID}
+          TAnimator.AnimateFloatWait(FImage, 'Position.X', 0, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
+          DoAfterCloseMenu(ATargetForm);
+          {$ELSE}
+          TAnimator.AnimateFloat(FImage, 'Position.X', 0, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
+          TThread.CreateAnonymousThread(
+            procedure
+            begin
+              Sleep(Round(C_MENU_SLIDE_SPEED*1000));
+              TThread.Synchronize(nil,
+                procedure
+                begin
+                  DoAfterCloseMenu(ATargetForm);
+                end
+              );
+            end
+          ).Start;
+          {$ENDIF}
+
+        end
+      );
+
+
+    end
+  ).Start;
+
+ // {$ENDIF}
 
 end;
 
@@ -279,7 +310,7 @@ begin
   FImage.Visible := False;
   FMenu.Visible := False;
 
-  if FImage.Width = 0 then
+  //if FImage.Width = 0 then
   begin
     FImage.SetBounds(0, 0, ACallingForm.Width, ACallingForm.Height);
     FImage.Bitmap := FCachedForm;
@@ -296,23 +327,25 @@ begin
   FMenu.HitTest := False;
   FImage.Visible := True;
   FMenu.Visible := True;
-  {$IFDEF ANDROID}
-  TAnimator.AnimateFloat(FImage, 'Position.X', C_MENU_WIDTH, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
-  TTask.Run(
+
+  TThread.CreateAnonymousThread(
     procedure
     begin
-      Sleep(Round(C_MENU_SLIDE_SPEED*1000));
-      FImage.HitTest := True;
-      FMenu.HitTest := True;
+      Sleep(200);
+      TThread.Synchronize(nil,
+        procedure
+        begin
+          {$IFDEF ANDROID}
+          TAnimator.AnimateFloat(FImage, 'Position.X', C_MENU_WIDTH, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
+          {$ELSE}
+          TAnimator.AnimateFloatWait(FImage, 'Position.X', C_MENU_WIDTH, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
+          {$ENDIF}
+          FImage.HitTest := True;
+          FMenu.HitTest := True;
+        end
+      );
     end
-  );
-  FImage.HitTest := True;
-  FMenu.HitTest := True;
-  {$ELSE}
-  TAnimator.AnimateFloatWait(FImage, 'Position.X', C_MENU_WIDTH, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
-  FImage.HitTest := True;
-  FMenu.HitTest := True;
-  {$ENDIF}
+  ).Start;
 end;
 
 procedure TksSideMenu.UpdateMenu;
@@ -334,7 +367,7 @@ begin
                                             atMore);
       AInputListItem.TextColor := claWhite;
       AInputListItem.BackgroundColor := claBlack;
-      AInputListItem.SelectedColor := claDarkgray;
+      AInputListItem.SelectedColor := claBlack;
     finally
       FreeAndNil(ABmp);
     end;

@@ -32,23 +32,15 @@ type
   TksFormStackTransitionType = (ttNone, ttSlideInFromRight, ttSlideUpFromBottom);
 
   ITransitionForm = interface
-    ['{771D1CDA-322B-486D-8AB6-96714A7AB41B}']
-    procedure AfterTransitionIntoView(AIsPush: Boolean; const AParams: TStrings = nil);
+    ['{F1672424-EA18-46FB-A170-269BF541142B}']
     procedure BeforeTransitionIntoView(AIsPush: Boolean; const AParams: TStrings = nil);
-
+    procedure AfterTransitionIntoView(AIsPush: Boolean; const AParams: TStrings = nil);
   end;
 
-  TksFormStackTransition = class
-  private
-    FType: TksFormStackTransitionType;
-    FForm: TCustomForm;
-  end;
 
   TksFormStack = class
   private
-    FUpdating: Boolean;
-    FStack: TObjectList<TksFormStackTransition>;
-    procedure HideKeyboard;
+    FStack: TList<TCommonCustomForm>;
     function GetDepth: integer;
   public
     constructor Create; virtual;
@@ -65,7 +57,7 @@ var
 
 implementation
 
-uses System.UIConsts, FMX.Ani, FMX.VirtualKeyboard, FMX.Platform, FMX.Types,
+uses System.UIConsts, FMX.Ani, FMX.Platform, FMX.Types,
   SysUtils;
 
 const
@@ -78,13 +70,13 @@ var
 
 procedure TksFormStack.Clear(ARootForm: TCommonCustomForm);
 var
-  ARoot: TksFormStackTransition;
+  ARoot: TCommonCustomForm;
 begin
   FStack.Clear;
   if ARootForm <> nil then
   begin
-    ARoot := TksFormStackTransition.Create;
-    ARoot.FForm := TCustomForm(ARootForm);
+    //ARoot := TksFormStackTransition.Create;
+    ARoot := TCustomForm(ARootForm);
     FStack.Add(ARoot);
   end;
 end;
@@ -92,8 +84,7 @@ end;
 constructor TksFormStack.Create;
 begin
   inherited;
-  FStack := TObjectList<TksFormStackTransition>.Create;
-  FUpdating := False;
+  FStack := TList<TCommonCustomForm>.Create;
 end;
 
 destructor TksFormStack.Destroy;
@@ -109,97 +100,73 @@ end;
 
 procedure TksFormStack.Pop;
 var
+  AToShow: TCommonCustomForm;
+  AToHide: TCommonCustomForm;
+  //l: integer;
   AInf: ITransitionForm;
-  AItem: TksFormStackTransition;
 begin
-  if FUpdating then
-    Exit;
-  FUpdating := True;
-  try
-    if FStack.Count > 1 then
-    begin
-      FStack[FStack.Count-2].FForm.Show;
-      FStack.Last.FForm.Hide;
+  if Screen.ActiveForm <> nil then
+    Screen.ActiveForm.Focused := nil;
 
-      AItem := FStack.Last;
-      FStack.Remove(FStack.Last);
-      if Supports(FStack.Last.FForm, ITransitionForm, AInf) then
-        AInf.AfterTransitionIntoView(False);
-      AItem.Free;
-    end;
-  finally
-    FUpdating := False;
+  if FStack.Count > 1 then
+  begin
+   //l := 2;
+    AToShow := FStack[FStack.Count-2];
+    AToHide := FStack.Last;
+    AToHide.Focused := nil;
+    FStack.Remove(AToHide);
+
+    if Supports(AToShow, ITransitionForm, AInf) then
+      AInf.BeforeTransitionIntoView(False, nil);
+
+    AToShow.Show;
+    AToHide.hide;
+    if Supports(AToShow, ITransitionForm, AInf) then
+      AInf.AfterTransitionIntoView(False, nil);
   end;
 end;
 
 procedure TksFormStack.Push(AForm: TCustomForm;
                             const AParams: TStrings = nil);
 var
-  ATran: TksFormStackTransition;
   AInf: ITransitionForm;
-  ALast: TCustomForm;
+  ALast: TCommonCustomForm;
+  AParamStr: string;
+
 begin
-  if FUpdating then
+  if (FStack.Count = 0) and (Screen.ActiveForm <> nil)  then
+    FStack.Add(Screen.ActiveForm);
+
+  ALast := nil;
+  if FStack.Count > 0 then
+    ALast := FStack.Last;
+
+  if ALast = AForm then
     Exit;
-  FUpdating := True;
-  try
-    AForm.Focused := nil;
 
-    if FStack.Count > 1 then
-    begin
-      AForm.Width := FStack.Last.FForm.Width;
-      AForm.Height := FStack.Last.FForm.Height;
-    end;
+  AParamStr := '';
+  if AParams <> nil then
+    AParamStr := AParams.Text;
+  if Screen.ActiveForm <> nil then
+    Screen.ActiveForm.Focused := nil;
+  AForm.Focused := nil;
 
-    HideKeyboard;
-
-    ALast := nil;
-    if FStack.Count > 1 then
-      ALast := FStack.Last.FForm;
-
-    ATran := TksFormStackTransition.Create;
-    ATran.FType := ttNone;
-    ATran.FForm := AForm;
-    FStack.Add(ATran);
-
-    try
-      if Supports(AForm, ITransitionForm, AInf) then
-        AInf.BeforeTransitionIntoView(True, AParams);
-    except
-      //
-    end;
-
-
-    if FStack.Count > 1 then
-    begin
-      if ALast = nil then
-        AForm.Show
-      else
-      begin
-        AForm.Show;
-      end;
-    end
-    else
-      AForm.Show;
-
-    try
-      if Supports(AForm, ITransitionForm, AInf) then
-        AInf.AfterTransitionIntoView(True, AParams);
-    except
-      //
-    end;
-
-  finally
-    FUpdating := False;
+  if FStack.Count > 0 then
+  begin
+    AForm.Width := FStack.Last.Width;
+    AForm.Height := FStack.Last.Height;
   end;
-end;
+  FStack.Add(AForm);
 
-procedure TksFormStack.HideKeyboard;
-var
-  KeyboardService: IFMXVirtualKeyboardService;
-begin
-  if TPlatformServices.Current.SupportsPlatformService(IFMXVirtualKeyboardService, IInterface(KeyboardService)) then
-    KeyboardService.HideVirtualKeyboard;
+  if Supports(AForm, ITransitionForm, AInf) then
+    AInf.BeforeTransitionIntoView(True, AParams);
+
+  AForm.Show;
+  if ALast <> nil then
+    ALast.Hide;
+
+  if Supports(AForm, ITransitionForm, AInf) then
+    AInf.AfterTransitionIntoView(True, AParams);
 end;
 
 initialization
@@ -215,4 +182,5 @@ finalization
   Bmp2.Free;
 
 end.
+
 

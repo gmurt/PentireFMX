@@ -28,7 +28,7 @@ interface
 
 uses System.Classes, FMX.Controls, FMX.InertialMovement, System.Types,
   System.Generics.Collections, FMX.Graphics, System.UITypes, FMX.Layouts, FMX.Types,
-  FMX.Objects, FMX.Edit, FMX.StdCtrls, FMX.Controls.Presentation, System.Threading,
+  FMX.Objects, FMX.Edit, FMX.StdCtrls, FMX.Controls.Presentation,
   FMX.ListBox, Json, FMX.Pickers, System.UIConsts, FMX.TextLayout, FMX.Forms;
 
   {.$DEFINE DEBUG_BOXES}
@@ -61,6 +61,9 @@ type
   TksInputListPaintItemEvent = procedure(Sender: TObject; ACanvas: TCanvas; AItemRect: TRectF; AIndex: integer) of object;
 
   TksBaseInputListItem = class
+  strict private
+    FBackground: TAlphaColor;
+
   private
     FksInputList: TksInputList;
     FEnabled: Boolean;
@@ -71,7 +74,6 @@ type
     FContentRect: TRectF;
     FAccessoryRect: TRectF;
     FAccessory: TksInputAccessoryType;
-    FBackground: TAlphaColor;
 
     FHeight: single;
     FIndex: integer;
@@ -89,6 +91,7 @@ type
     FReadOnly: Boolean;
     FTextColor: TAlphaColor;
     FDetailTextColor: TAlphaColor;
+    FSlideButtonWidth: integer;
     function GetItemRect: TRectF;
     function GetAccessoryWidth(const AAddPadding: Boolean = False): single;
     procedure SetTitle(const Value: string);
@@ -121,6 +124,8 @@ type
     property ItemRect: TRectF read GetItemRect;
     procedure SetReadOnly(const Value: Boolean); virtual;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
+    procedure ShowSwipeButtons;
+    procedure HideSwipeButtons;
   public
     constructor Create(AInputList: TksInputList); virtual;
     destructor Destroy; override;
@@ -130,7 +135,7 @@ type
     procedure SaveToJson(AJson: TJsonObject; AStructure, AData: Boolean);
     procedure LoadFromJson(AJson: TJsonObject; AStructure, AData: Boolean);
     property Accessory: TksInputAccessoryType read FAccessory write SetAccessory;
-    property BackgroundColor: TAlphaColor read FBackground write SetBackgroundColor;
+    property BackgroundColor: TAlphaColor read FBackground write SetBackgroundColor default claWhite;
     property TextColor: TAlphaColor read FTextColor write SetTextColor;
     property DetailTextColor: TAlphaColor read FDetailTextColor write SetDetailTextColor;
     property Image: TBitmap read FImage;
@@ -152,7 +157,9 @@ type
   TksInputListSeperator = class(TksBaseInputListItem)
   private
     FHorzAlign: TTextAlign;
+    FVertAlign: TTextAlign;
     procedure SetHorzAlign(const Value: TTextAlign);
+    procedure SetVertAlign(const Value: TTextAlign);
 
   protected
     class function GetClassID: string; override;
@@ -161,6 +168,7 @@ type
     constructor Create(AInputList: TksInputList); override;
     procedure DrawToCanvas(ACanvas: TCanvas); override;
     property HorzAlign: TTextAlign read FHorzAlign write SetHorzAlign default TTextAlign.Leading;
+    property VertAlign: TTextAlign read FVertAlign write SetVertAlign default TTextAlign.Trailing;
   end;
 
   TksInputListItem = class(TksBaseInputListItem)
@@ -232,12 +240,11 @@ type
 
   TksInputListItemWithControl = class(TksInputListItem)
   private
+    FCache: TBitmap;
     FControl: TPresentedControl;
-    FCached: TBitmap;
     FControlRect: TRectF;
     FFullWidthSelect: Boolean;
   protected
-    procedure UpdateRects; override;
     function CreateControl: TPresentedControl; virtual; abstract;
     procedure PaintControl(ACanvas: TCanvas); virtual;
     procedure UpdateControlPosition;
@@ -245,10 +252,12 @@ type
     procedure Changed; override;
     procedure Reset; override;
     procedure ItemClick; override;
+    procedure CacheControl; virtual;
+    procedure ClearCache;
   public
     constructor Create(AInputList: TksInputList); override;
     destructor Destroy; override;
-    procedure ClearCache;
+    procedure UpdateRects; override;
     procedure DrawToCanvas(ACanvas: TCanvas); override;
   end;
 
@@ -258,6 +267,7 @@ type
   TksInputListEditItem = class(TksInputListItemWithControl)
   private
     function GetEdit: TksEdit;
+    //procedure DoEnter(Sender: TObject);
     procedure TextChange(Sender: TObject);
   protected
     class function GetClassID: string; override;
@@ -269,8 +279,11 @@ type
     function CreateControl: TPresentedControl; override;
     procedure Reset; override;
     procedure ClickControl; override;
+
     procedure MouseDown; override;
   public
+    procedure Test;
+    procedure DrawToCanvas(ACanvas: TCanvas); override;
     property Edit: TksEdit read GetEdit;
 
   end;
@@ -340,6 +353,7 @@ type
     procedure SetValue(const AValue: string); override;
     procedure PaintControl(ACanvas: TCanvas); override;
     procedure Reset; override;
+    procedure CacheControl; override;
   public
     constructor Create(AInputList: TksInputList); override;
 
@@ -380,7 +394,7 @@ type
     property Value: string read GetValue write SetValue;
   end;
 
-  TksDateTimeSelectorKind = (ksDateSelector, ksTimeSelector);
+  TksDateTimeSelectorKind = (ksDateSelector, ksTimeSelector, ksDateTimeSelector);
 
   TksInputListDateTimeSelectorItem = class(TksBaseInputListItem)
   private
@@ -437,6 +451,7 @@ type
     function AddItemSelector(AID: string; AImg: TBitmap; ATitle, ASelected: string; AItems: TStrings): TksInputListSelectorItem overload;
     function AddDateSelector(AID: string; AImg: TBitmap; ATitle: string; ASelected: TDateTime): TksInputListDateTimeSelectorItem overload;
     function AddTimeSelector(AID: string; AImg: TBitmap; ATitle: string; ASelected: TDateTime): TksInputListDateTimeSelectorItem overload;
+    function AddDateTimeSelector(AID: string; AImg: TBitmap; ATitle: string; ASelected: TDateTime): TksInputListDateTimeSelectorItem overload;
     function AddRadioItem(AID: string; AImage: TBitmap; AGroupID, ATitle: string; AChecked: Boolean): TksInputListCheckBoxItem;
     function AddBadgeItem(AID: string; AImage: TBitmap; ATitle, AValue: string; ABadgeColor, ABadgeTextColor: TAlphaColor; const AAccessory: TksInputAccessoryType = atNone): TksInputListBadgeItem;
     function AddChatItem(AID, ASender, AText: string; ADateTime: TDateTime; AAlign: TTextAlign; AColor, ATextColor: TAlphaColor; const AUse24HourTime: Boolean = True): TksInputListChatItem;
@@ -457,6 +472,7 @@ type
   TksInputList = class(TVertScrollBox)
   private
     FBuffer: TForm;
+    FScrollMonitor: TThread;
     FPickerService: IFMXPickerService;
     FCanvas: TksInputListCanvas;
     FItems: TksInputListItems;
@@ -493,7 +509,12 @@ type
     procedure SetValue(AName: string; const Value: string);
     procedure SetShowDividers(const Value: Boolean);
     procedure SetBackgroundColor(const Value: TAlphaColor);
+    procedure SwipeLeft(AEventInfo: TGestureEventInfo);
+    procedure SwipeRight(AEventInfo: TGestureEventInfo);
+    //function ItemAtPos(x, y: Extended): TksBaseInputListItem;
+    procedure HideAllSwipeButtons(AIgnoreItem: TksBaseInputListItem);
   protected
+
     procedure Paint; override;
     procedure Resize; override;
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Single); override;
@@ -501,13 +522,12 @@ type
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Single); override;
     procedure ViewportPositionChange(const OldViewportPosition, NewViewportPosition: TPointF;
                                      const ContentSizeChanged: boolean); override;
-
+    procedure CMGesture(var EventInfo: TGestureEventInfo); override;
+    procedure VScrollChange; override;
   public
-
-
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
-    procedure ShowOnScreenControls;
+    procedure ShowOnScreenControls2;
     procedure HideAllControls;
     procedure BeginUpdate; override;
     procedure EndUpdate; override;
@@ -787,7 +807,6 @@ end;
 
 procedure TksInputList.BeginUpdate;
 begin
-  //inherited;
   Inc(FUpdateCount);
 end;
 
@@ -800,6 +819,13 @@ begin
   finally
     EndUpdate;
   end;
+end;
+
+procedure TksInputList.CMGesture(var EventInfo: TGestureEventInfo);
+begin
+  inherited;
+  if EventInfo.GestureID = 1 then SwipeLeft(EventInfo);
+  if EventInfo.GestureID = 2 then SwipeRight(EventInfo);
 end;
 
 constructor TksInputList.Create(AOwner: TComponent);
@@ -829,16 +855,15 @@ end;
 
 procedure TksInputList.CreateScrollMonitor;
 begin
-  //FScrollMonitor := TThread.CreateAnonymousThread (
-  //  procedure
-  //  begin
+  //Exit;
 
-  TTask.Run(
+  FScrollMonitor := TThread.CreateAnonymousThread(
     procedure
     begin
+
       while not Application.Terminated do
       begin
-        sleep (200);
+        sleep (50);
         try
           if Application = nil then
             Exit;
@@ -849,24 +874,23 @@ begin
           begin
             if (FLastScrollPos = VScrollBarValue) and (FControlsVisible = False) then
             begin
-              TThread.Queue(nil,
+              TThread.Synchronize(TThread.CurrentThread,
                 procedure
                 begin
-                  ShowOnScreenControls;
-                end);
-            end
+                  ShowOnScreenControls2;
+              end);
+            end;
+            //ShowOnScreenControls;
 
           end;
           FLastScrollPos := VScrollBarValue;
+
         except
-          // application terminated?
         end;
       end;
     end
   );
-  //  end
-  //);
-  //FScrollMonitor.Start;
+  FScrollMonitor.Start;  
 end;
 
 destructor TksInputList.Destroy;
@@ -874,6 +898,7 @@ var
   AItem: TksBaseInputListItem;
   c: TPresentedControl;
 begin
+  FScrollMonitor.Terminate;
   //if FScrollMonitor <> nil then
    // FScrollMonitor.Free;
 
@@ -923,12 +948,13 @@ begin
   begin
     UpdateItemRects;
     {$IFNDEF MSWINDOWS}
-    RedrawItems;
+    //RedrawItems;
     {$ENDIF}
     //HideAllControls;
     HidePickers;
-    ShowOnScreenControls;
     InvalidateRect(ClipRect);
+    FControlsVisible := False;
+    ShowOnScreenControls2;
   end;
 end;
 
@@ -965,17 +991,26 @@ end;
 procedure TksInputList.HideAllControls;
 var
   AItem: TksBaseInputListItem;
-  c: TFMXObject;
 begin
+
   inherited;
+  //Exit;
   if (FUpdateCount > 0) or (FControlsVisible = False) then
     Exit;
-
+        {
   for AItem in FItems do
   begin
     if AItem is TksInputListItemWithControl then
     begin
       c := (AItem as TksInputListItemWithControl).FControl;
+
+      if (c is TksEdit) then
+      begin
+        (c as TksEdit).ControlType := TControlType.Styled;
+
+      end;
+
+
       if c.Parent <> FBuffer then
       begin
         FBuffer.AddObject(c);
@@ -983,8 +1018,26 @@ begin
         //FBuffer.RemoveObject(c);
       end;
     end;
-  end;
+  end;  }
+
+  for AItem in FItems do
+    if (AItem is TksInputListItemWithControl) then
+    begin
+      //(AItem as TksInputListItemWithControl).FControl.ControlType := TControlType.Styled;
+      (AItem as TksInputListItemWithControl).CacheControl;
+    end;
   FControlsVisible := False;
+end;
+
+procedure TksInputList.HideAllSwipeButtons(AIgnoreItem: TksBaseInputListItem);
+var
+  AItem: TksBaseInputListItem;
+begin
+  for AItem in FItems do
+  begin
+    if AItem <> AIgnoreItem then
+      AItem.HideSwipeButtons;
+  end;
 end;
 
 procedure TksInputList.HidePickers;
@@ -992,6 +1045,22 @@ begin
   if FPickerService <> nil then
     FPickerService.CloseAllPickers;
 end;
+
+{
+function TksInputList.ItemAtPos(x, y: Extended): TksBaseInputListItem;
+var
+  AItem: TksBaseInputListItem;
+begin
+  Result := nil;
+  for AItem in FItems do
+  begin
+    if PtInRect(AItem.ItemRect, PointF(x, y+FLastScrollPos)) then
+    begin
+      Result := AItem;
+      Exit;
+    end;
+  end;
+end;  }
 
 procedure TksInputList.LoadFromJson(AJsonData: string; AStructure,
   AData: Boolean);
@@ -1043,8 +1112,6 @@ procedure TksInputList.MouseDown(Button: TMouseButton; Shift: TShiftState; X,
   Y: Single);
 var
   AItem: TksBaseInputListItem;
-  ATask: ITask;
-  ATapEvent: Boolean;
 begin
   inherited;
   FMouseDown := True;
@@ -1066,30 +1133,6 @@ begin
       begin
         FMouseDownItem := AItem;
         FMouseDownTime := MilliSecondOfTheDay(Now);
-        aTask := TTask.Create (procedure ()
-        begin
-          Sleep(100);
-
-          ATapEvent := ((FMousePos.Y) > (FMouseDownPos.Y - 10)) and ((FMousePos.Y) < (FMouseDownPos.Y + 10));
-          TThread.Synchronize(nil,procedure
-            var
-              AItem: TksBaseInputListItem;
-            begin
-              if FMouseDown then
-              begin
-                for AItem in FItems do
-                begin
-                  if AItem.FMouseDown then
-                    AItem.MouseUp(False);
-                end;
-                FMouseDownItem.MouseDown;
-
-              end;
-              Application.ProcessMessages;
-            end
-          );
-        end);
-        aTask.Start;
       end;
 
     end;
@@ -1118,7 +1161,6 @@ begin
   ADelay := MilliSecondOfTheDay(Now) - FMouseDownTime;
   AQuckTap := ADelay < 200;
   ALongTap := ADelay > 500;
-  //form11.memo1.lines.add(FMouseDownPos.Y.ToString+'  '+y.ToString);
 
   ATapEvent := ((Y) > (FMouseDownPos.Y - 5)) and ((Y) < (FMouseDownPos.Y + 5));
   if FMouseDownItem <> nil then
@@ -1126,7 +1168,6 @@ begin
     if FMouseDownItem.Enabled = False then
       Exit;
 
-    //ADelay := (MilliSecondOfTheDay(Now) - FMouseDownTime);
     if ATapEvent then
     begin
       if AQuckTap then
@@ -1138,11 +1179,11 @@ begin
         end;
 
         FMouseDownItem.MouseDown;
-        Application.ProcessMessages;
+        //Application.ProcessMessages;
         Sleep(50);
       end;
       FMouseDownItem.MouseUp(ATapEvent);
-      Application.ProcessMessages;
+      //Application.ProcessMessages;
 
       if ALongTap then
       begin
@@ -1163,7 +1204,9 @@ end;
 
 procedure TksInputList.Paint;
 begin
-  if BackgroundColor <> claNull then
+  if BackgroundColor = claNull then
+    Canvas.ClearRect(ClipRect, claWhitesmoke)
+  else
     Canvas.ClearRect(ClipRect, BackgroundColor);
   inherited;
 end;
@@ -1184,6 +1227,8 @@ begin
     AItem.FIndex := ICount;
     ATop := AItem.FItemRect.Bottom;
     AHeight := AHeight + AItem.FItemRect.Height;
+    //if (AItem is TksInputListItemWithControl)  then
+    //  (AItem as TksInputListItemWithControl).CacheControl;
   end;
   FCanvas.Height := AHeight;
 end;
@@ -1193,8 +1238,19 @@ procedure TksInputList.ViewportPositionChange(const OldViewportPosition,
 begin
   inherited;
   FLastScrollChange := Now;
-  HideAllControls;
   HidePickers;
+  HideAllControls;
+end;
+
+procedure TksInputList.VScrollChange;
+begin
+  inherited;
+  {$IFDEF MSWINDOWS}
+  HidePickers;
+
+  //ShowOnScreenControls;
+  {$ENDIF}
+
 end;
 
 procedure TksInputList.RedrawItems;
@@ -1225,7 +1281,7 @@ procedure TksInputList.Resize;
 begin
   inherited;
   UpdateItemRects;
-  ShowOnScreenControls;
+  //ShowOnScreenControls;
 end;
 
 procedure TksInputList.SaveToJson(AJson: TJsonObject; AStructure,
@@ -1295,7 +1351,7 @@ begin
   begin
     FItemHeight := Value;
     UpdateItemRects;
-    ShowOnScreenControls;
+    //ShowOnScreenControls;
   end;
 end;
 
@@ -1319,15 +1375,16 @@ begin;
   end;
 end;
 
-procedure TksInputList.ShowOnScreenControls;
+procedure TksInputList.ShowOnScreenControls2;
 var
   AItem: TksBaseInputListItem;
   ACtrlItem: TksInputListItemWithControl;
   r: TRectF;
 begin
-
+  
   if FUpdateCount > 0 then
     Exit;
+
   r := ContentRect;
   OffsetRect(r, 0, VScrollBarValue);
 
@@ -1336,23 +1393,75 @@ begin
     if (AItem is TksInputListItemWithControl) then
     begin
       ACtrlItem := (AItem as TksInputListItemWithControl);
+
       if ACtrlItem.Enabled then
       begin
         if IntersectRect(r, ACtrlItem.FItemRect) then
         begin
-          if ACtrlItem.FControl.Parent = FBuffer then
-          begin
-            ACtrlItem.UpdateControlPosition;
-            ACtrlItem.FControl.Visible := True;
-            ACtrlItem.ClearCache;
+          if (ACtrlItem is TksInputListEditItem) then
+            (ACtrlItem as TksInputListEditItem).Edit.Width := Width/2;
+
+
+          ACtrlItem.UpdateControlPosition;
+
+          if not Self.ContainsObject(ACtrlItem.FControl) then
             Self.AddObject(ACtrlItem.FControl);
-          end;
-        end;
+          ACtrlItem.ClearCache;
+          ACtrlItem.FControl.Visible := True;
+
+        end
+        else
+        begin
+          ACtrlItem.FControl.Visible := False;
+        end
+
       end;
     end;
   end;
   FControlsVisible := True;
+end;
 
+procedure TksInputList.SwipeLeft(AEventInfo: TGestureEventInfo);
+var
+  //AItem: TksBaseInputListItem;
+  AWidth: integer;
+  ICount: integer;
+begin
+  Exit;
+
+  for AWidth := 0 to 10 do
+  begin
+    for ICount := 0 to FItems.Count-1 do
+    begin
+      FItems[ICount].FSlideButtonWidth := (AWidth * 10);
+      FItems[Icount].Changed;
+    end;
+    //InvalidateRect(ClipRect);
+    Repaint;
+
+  end;
+
+
+  {AItem := ItemAtPos(AEventInfo.Location.X, AEventInfo.Location.Y);
+  if AItem <> nil then
+  begin
+    HideAllSwipeButtons(AItem);
+    AItem.ShowSwipeButtons;
+  end;}
+end;
+
+procedure TksInputList.SwipeRight(AEventInfo: TGestureEventInfo);
+//var
+  //AItem: TksBaseInputListItem;
+begin
+  Exit;
+  
+  HideAllSwipeButtons(nil);
+  {AItem := ItemAtPos(AEventInfo.TapLocation.X, AEventInfo.TapLocation.Y);
+  if AItem <> nil then
+  begin
+    AItem.HideSwipeButtons;
+  end;}
 end;
 
 { TksBaseInputListItem }
@@ -1380,6 +1489,7 @@ begin
   FReadOnly := False;
   FEnabled := True;
   FSelectedColor := $FFEAEAEA;
+  FSlideButtonWidth := 0;
 end;
 
 destructor TksBaseInputListItem.Destroy;
@@ -1413,7 +1523,12 @@ begin
 
   InflateRect(r, 0, (ACanvas.Stroke.Thickness / GetScreenScale()));
 
+  //if FksInputList.Items.IndexOf(Self) = 0 then
+  //  if ATop then ACanvas.DrawLine(PointF(r.Left, r.Top+1), PointF(r.Right, r.Top+1), 1)
+  //else
+
   if ATop then ACanvas.DrawLine(r.TopLeft, PointF(r.Right, r.Top), 1);
+
   if ABottom then  ACanvas.DrawLine(PointF(r.Left, r.Bottom), r.BottomRight, 1);
 end;
 
@@ -1423,7 +1538,9 @@ var
   AAccRect: TRectF;
   AAcc: TBitmap;
   r: TRectF;
+  AButtonRect: TRectF;
 begin
+
   UpdateRects;
   AState := ACanvas.SaveState;
   try
@@ -1432,18 +1549,20 @@ begin
     ACanvas.Font.Assign(FFont);
 
     if ((FSelected) and (FShowSelection)) and (not FReadOnly) and (FEnabled) then
-      ACanvas.Fill.Color := FSelectedColor;
+      ACanvas.Fill.Color := claWhitesmoke;
 
     r := FItemRect;
 
 
 
     InflateRect(r, 0, 0.5);
+    if FIndex = 0 then
+      r.Top := r.Top + 1;
 
     ACanvas.FillRect(r, 0, 0, AllCorners, 1);
 
     {$IFDEF DEBUG_BOXES}
-    ACanvas.Stroke.Color := claRed;
+    {ACanvas.Stroke.Color := claRed;
     ACanvas.Stroke.Kind := TBrushKind.Solid;
     ACanvas.Stroke.Thickness := GetScreenScale;
     ACanvas.DrawRect(FContentRect, C_CORNER_RADIUS, C_CORNER_RADIUS, AllCorners, 1);
@@ -1455,7 +1574,7 @@ begin
     ACanvas.DrawRect(FAccessoryRect, C_CORNER_RADIUS, C_CORNER_RADIUS, AllCorners, 1);
 
     ACanvas.Stroke.Color := claPink;
-    ACanvas.DrawRect(FImageRect, C_CORNER_RADIUS, C_CORNER_RADIUS, AllCorners, 1);
+    ACanvas.DrawRect(FImageRect, C_CORNER_RADIUS, C_CORNER_RADIUS, AllCorners, 1); }
     {$ENDIF}
 
     if Assigned(FksInputList.OnPaintItem) then
@@ -1501,6 +1620,15 @@ begin
       ACanvas.FillText(FContentRect, FDetail, False, 1, [], TTextAlign.Trailing, TTextAlign.Center);
     end;
     DoCustomDraw(ACanvas);
+
+    // draw the button...
+    if FSlideButtonWidth > 0 then
+    begin
+      ACanvas.Fill.Color := claRed;
+      AButtonRect := FItemRect;
+      AButtonRect.Left := AButtonRect.Right-FSlideButtonWidth;
+      ACanvas.FillRect(AButtonRect, 0, 0, AllCorners, 1);
+    end;
   finally
     ACanvas.RestoreState(AState);
   end;
@@ -1537,6 +1665,21 @@ begin
   Result := '';
 end;
 
+procedure TksBaseInputListItem.HideSwipeButtons;
+var
+  ICount: integer;
+begin
+  if FSlideButtonWidth > 0 then
+  begin
+    for ICount := 20 downto 0 do
+    begin
+      FSlideButtonWidth := ICount*5;
+      Changed;
+    end;
+  end;
+end;
+
+
 procedure TksBaseInputListItem.ItemClick;
 begin
   //
@@ -1547,7 +1690,7 @@ procedure TksBaseInputListItem.LoadFromJson(AJson: TJsonObject; AStructure,
 begin
   if AStructure then  LoadStructure(AJson);
   if AData then Value := AJson.Values['value'].Value;
-  
+
 end;
 
 procedure TksBaseInputListItem.LoadStructure(AJson: TJSONObject);
@@ -1665,6 +1808,8 @@ begin
   begin
     FEnabled := Value;
     Changed;
+    FksInputList.ShowOnScreenControls2;
+
   end;
 end;
 
@@ -1726,6 +1871,17 @@ end;
 procedure TksBaseInputListItem.SetValue(const AValue: string);
 begin
   // overridden in descendant classes.
+end;
+
+procedure TksBaseInputListItem.ShowSwipeButtons;
+var
+  ICount: integer;
+begin
+  for ICount := 0 to 20 do
+  begin
+    FSlideButtonWidth := ICount*5;
+    Changed;
+  end;
 end;
 
 procedure TksBaseInputListItem.UpdateRects;
@@ -1792,6 +1948,7 @@ begin
   AItem.Button.DisableFocusEffect := True;
   AItem.Button.CanFocus := False;
   AItem.OnChange := ItemChange;
+  AItem.CacheControl;
   Add(AItem);
   ItemChange(Self);
 end;
@@ -1840,6 +1997,7 @@ begin
   Result.CheckBox.IsChecked := AState;
   Result.CheckBox.OnChange := Result.CheckBoxChange;
   Result.OnChange := ItemChange;
+  Result.CacheControl;
   Add(Result);
   ItemChange(Self);
 end;
@@ -1861,7 +2019,7 @@ begin
   Result.OnChange := ItemChange;
   Result.Edit.OnChangeTracking := Result.TextChange;
   Result.Edit.ApplyStyleLookup;
-
+  Result.CacheControl;
   Add(Result);
   ItemChange(Self);
 end;
@@ -1885,6 +2043,7 @@ begin
   Result.GetSwitch.IsChecked := AState;
   Result.GetSwitch.OnSwitch := Result.SwitchChange;
   Result.OnChange := ItemChange;
+  Result.CacheControl;
   Add(Result);
   ItemChange(Self);
 end;
@@ -1902,6 +2061,7 @@ begin
   AItem.TrackBar.Value := AMax;
   AItem.OnChange := ItemChange;
   AItem.TrackBar.OnTracking := AItem.TrackBarChange;
+  AItem.CacheControl;
 
   Add(AItem);
   ItemChange(Self);
@@ -1962,6 +2122,21 @@ begin
   Result.Accessory := atMore;
   Result.OnChange := ItemChange;
   Result.Kind := ksDateSelector;
+  Add(Result);
+  ItemChange(Self);
+end;
+
+function TksInputListItems.AddDateTimeSelector(AID: string; AImg: TBitmap; ATitle: string; ASelected: TDateTime): TksInputListDateTimeSelectorItem;
+begin
+  Result := TksInputListDateTimeSelectorItem.Create(FksInputList);
+  Result.FItemID := AID;
+  Result.Kind := TksDateTimeSelectorKind.ksDateTimeSelector;
+
+  Result.DateTime := ASelected;
+  Result.FImage.Assign(AImg);
+  Result.Title := ATitle;
+  Result.Accessory := atMore;
+  Result.OnChange := ItemChange;
   Add(Result);
   ItemChange(Self);
 end;
@@ -2087,7 +2262,7 @@ begin
     Exit;
   FksInputList.UpdateItemRects;
   FksInputList.InvalidateRect(FksInputList.ClipRect);
-  FksInputList.ShowOnScreenControls;
+  //FksInputList.ShowOnScreenControls;
 end;
 
 function TksInputListItems.ItemExists(AID: string): Boolean;
@@ -2110,6 +2285,7 @@ end;
 
 procedure TksInputListEditItem.ClickControl;
 begin
+  //FControl.ControlType := TControlType.Platform;
   inherited ClickControl;
 end;
 
@@ -2122,6 +2298,13 @@ begin
   (Result as TksEdit).TextSettings.HorzAlign := TTextAlign.Trailing;
   (Result as TksEdit).CanFocus := True;
   (Result as TksEdit).DisableFocusEffect := False;
+  //
+end;
+
+
+procedure TksInputListEditItem.DrawToCanvas(ACanvas: TCanvas);
+begin
+  inherited DrawToCanvas(ACanvas);
 end;
 
 class function TksInputListEditItem.GetClassID: string;
@@ -2142,7 +2325,6 @@ end;
 procedure TksInputListEditItem.MouseDown;
 begin
   inherited;
-
 end;
 
 procedure TksInputListEditItem.LoadStructure(AJson: TJSONObject);
@@ -2181,6 +2363,11 @@ begin
   Edit.Text := AValue;
 end;
 
+procedure TksInputListEditItem.Test;
+begin
+  FControl.ControlType := TControlType.Platform;
+end;
+
 procedure TksInputListEditItem.TextChange(Sender: TObject);
 begin
   if Assigned(FksInputList.OnEditItemTextChange) then
@@ -2189,6 +2376,24 @@ end;
 
 { TksInputListItemWithControl }
 
+procedure TksInputListItemWithControl.CacheControl;
+var
+  AScale: single;
+begin
+  FControl.PrepareForPaint;
+  FCache := TBitmap.Create;
+  AScale := GetScreenScale;
+
+  FCache.BitmapScale := AScale;
+  FCache.SetSize(Round(FControl.Width * AScale), Round(FControl.Height * AScale));
+  FCache.Clear(claNull);
+  FCache.Canvas.BeginScene;
+  FControl.PaintTo(FCache.Canvas, RectF(0,0,FCache.Width/AScale, FCache.Height/AScale), nil);
+  FCache.Canvas.EndScene;
+
+  FControl.Visible := False;
+end;
+
 procedure TksInputListItemWithControl.Changed;
 begin
   inherited;
@@ -2196,14 +2401,15 @@ begin
   UpdateControlPosition;
 end;
 
+
 procedure TksInputListItemWithControl.ClearCache;
 begin
-  FCached.SetSize(0,0);
+  FCache.Clear(claNull);
 end;
 
 procedure TksInputListItemWithControl.ClickControl;
 begin
-  //FksInputList.HidePickers;
+  FksInputList.HidePickers;
 end;
 
 constructor TksInputListItemWithControl.Create(AInputList: TksInputList);
@@ -2211,49 +2417,25 @@ begin
   inherited;
   FControl := CreateControl;
   FControl.Visible := True;
-  FControl.ApplyStyleLookup;
-  FCached := TBitmap.Create;
+  FksInputList.FBuffer.AddObject(FControl);
+  
   FFullWidthSelect := False;
 end;
 
 
 destructor TksInputListItemWithControl.Destroy;
 begin
+  FCache.Free;
   FControl.DisposeOf;
-  FCached.Free;
   inherited;
 end;
 
 procedure TksInputListItemWithControl.DrawToCanvas(ACanvas: TCanvas);
-var
-  AScreenScale: single;
 begin
   inherited;
-  {$IFDEF DEBUG_BOXES}
-  ACanvas.Stroke.Color := claBlack;
-  ACanvas.Stroke.Kind := TBrushKind.Solid;
-  ACanvas.Stroke.Thickness := GetScreenScale;
-  ACanvas.DrawRect(FControl.BoundsRect, C_CORNER_RADIUS, C_CORNER_RADIUS, AllCorners, 1);
-  {$ENDIF}
-
-  if FControl.Parent <> FksInputList.FBuffer then
-    Exit;
-
-  AScreenScale := GetScreenScale;
-
-  ACanvas.Stroke.Kind := TBrushKind.Solid;
-  ACanvas.Stroke.Thickness := 0.5;
-
-  if FCached.IsEmpty then
-  begin
-    FCached.BitmapScale := AScreenScale;
-    FCached.SetSize(Round(FControl.Width*AScreenScale), Round(FControl.Height*AScreenScale));
-    FCached.Canvas.BeginScene;
-    FCached.Clear(claNull);
-    PaintControl(FCached.Canvas);
-    FCached.Canvas.EndScene;
-  end;
-  ACanvas.DrawBitmap(FCached, Rect(0, 0, FCached.Width, FCached.Height), FControl.BoundsRect.PlaceInto(FControlRect, THorzRectAlign.Right), 1);
+  //if FControl.Visible = False then
+  FControl.ControlType := TControlType.Styled;
+  ACanvas.DrawBitmap(FCache, Rect(0, 0, FCache.Width, FCache.Height), FControl.BoundsRect.PlaceInto(FControlRect, THorzRectAlign.Right), 1, True);
 end;
 
 procedure TksInputListItemWithControl.ItemClick;
@@ -2272,7 +2454,6 @@ end;
 procedure TksInputListItemWithControl.Reset;
 begin
   inherited;
-  FCached.SetSize(0, 0);
 end;
 
 procedure TksInputListItemWithControl.UpdateControlPosition;
@@ -2341,12 +2522,14 @@ end;
 
 procedure TksInputListSwitchItem.SwitchChange(Sender: TObject);
 var
-  ATask: ITask;
+  Thread: TThread;
 begin
-  FCached.Clear(claNull);
-  ATask := TTask.Create (procedure ()
-   begin
-     TThread.Synchronize(nil,procedure
+  FksInputList.HidePickers;
+  Thread := TThread.CreateAnonymousThread(
+    procedure
+    begin
+      Sleep(250);
+      TThread.Synchronize(TThread.CurrentThread,procedure
       begin
         if Assigned(FksInputList.OnItemSwitchChanged) then
         begin
@@ -2354,13 +2537,14 @@ begin
         end;
       end);
    end);
-  ATask.Start;
+  Thread.Start;
 end;
 
 { TksInputListCheckBoxItem }
 
 procedure TksInputListCheckBoxItem.CheckBoxChange(Sender: TObject);
 begin
+  FksInputList.HidePickers;
   if Assigned(FksInputList.OnItemCheckBoxChanged) then
   begin
     FksInputList.OnItemCheckBoxChanged(FksInputList, Self, ID, CheckBox.IsChecked);
@@ -2460,6 +2644,7 @@ end;
 
 procedure TksInputListButtonItem.DoButtonClick(Sender: TObject);
 begin
+  FksInputList.HidePickers;
   if Assigned(FksInputList.OnItemButtonClick) then
     FksInputList.OnItemButtonClick(FksInputList, Self, ID);
 end;
@@ -2490,6 +2675,14 @@ end;
 
 { TksInputListTrackBarItem }
 
+procedure TksInputListTrackBarItem.CacheControl;
+begin
+  //if TrackBar.Thumb <> nil then
+  TrackBar.ApplyStyle;
+  inherited;
+
+end;
+
 constructor TksInputListTrackBarItem.Create(AInputList: TksInputList);
 begin
   inherited;
@@ -2518,18 +2711,16 @@ begin
 end;
 
 procedure TksInputListTrackBarItem.PaintControl(ACanvas: TCanvas);
-var
-  AThumbRect: TRectF;
 begin
   inherited;
-  AThumbRect := TrackBar.GetThumbRect;
+ { AThumbRect := TrackBar.GetThumbRect;
   if TrackBar.Thumb <> nil then
   begin
     if TrackBar.Thumb.StyleState <> TStyleState.Applied then
       TrackBar.Thumb.ApplyStyleLookup;
 
     TrackBar.Thumb.PaintTo(ACanvas, AThumbRect);
-  end;
+  end;    }
 end;
 
 procedure TksInputListTrackBarItem.Reset;
@@ -2546,8 +2737,8 @@ end;
 
 procedure TksInputListTrackBarItem.TrackBarChange(Sender: TObject);
 begin
-  if Assigned(FksInputList.OnItemTrackBarChange) then
-    FksInputList.OnItemTrackBarChange(FksInputList, Self, ID, StrToFloatDef(Value, 0));
+  ///if Assigned(FksInputList.OnItemTrackBarChange) then
+  //  FksInputList.OnItemTrackBarChange(FksInputList, Self, ID, StrToFloatDef(Value, 0));
 end;
 
 { TksInputListSelectorItem }
@@ -2573,22 +2764,25 @@ end;
 
 procedure TksInputListSelectorItem.DoSelectorChanged(Sender: TObject);
 var
-  ATask: ITask;
+  Thread: TThread;
 begin
   if FCombo.ItemIndex > -1 then
     Value := FCombo.Items[FCombo.ItemIndex];
-  aTask := TTask.Create (procedure ()
-   begin
+  Thread := TThread.CreateAnonymousThread(
+    procedure
+    begin
       Sleep(200);
       // Copy files here
-      TThread.Synchronize(nil, procedure
-  begin
+      TThread.Synchronize(TThread.CurrentThread, procedure
+        begin
 
-      if Assigned(FksInputList.OnSelectorItemSelected) then
-        FksInputList.OnSelectorItemSelected(FksInputList, Self, ID, Value);
-    end);
-   end);
- aTask.Start;
+          if Assigned(FksInputList.OnSelectorItemSelected) then
+            FksInputList.OnSelectorItemSelected(FksInputList, Self, ID, Value);
+        end
+      );
+    end
+  );
+ Thread.Start;
 end;
 
 class function TksInputListSelectorItem.GetClassID: string;
@@ -2697,6 +2891,7 @@ begin
   FHeight := C_DEFAULT_SEPERATOR_HEIGHT;
   FFont.Size := 11;
   FHorzAlign := TTextAlign.Leading;
+  FVertAlign := TTextAlign.Trailing;
 end;
 
 procedure TksInputListSeperator.DrawToCanvas(ACanvas: TCanvas);
@@ -2705,14 +2900,14 @@ var
 begin
   AText := FTitle;
   FTitle := '';
-  FBackground := claNull;
+  BackgroundColor := claNull;
   inherited DrawToCanvas(ACanvas);
   FTitle := AText;
-  FBackground := claNull;
+  BackgroundColor := claNull;
   ACanvas.Fill.Color := claDimgray;
   ACanvas.Font.Size := 12;
   FContentRect.Inflate(0, -4);
-  ACanvas.FillText(FContentRect, FTitle, False, 1, [], FHorzAlign, TTextAlign.Trailing);
+  ACanvas.FillText(FContentRect, FTitle, False, 1, [], FHorzAlign, FVertAlign);
   FContentRect.Inflate(0, 4);
 end;
 
@@ -2731,6 +2926,15 @@ begin
   if FHorzAlign <> Value then
   begin
     FHorzAlign := Value;
+    Changed;
+  end;
+end;
+
+procedure TksInputListSeperator.SetVertAlign(const Value: TTextAlign);
+begin
+  if FVertAlign <> Value then
+  begin
+    FVertAlign := Value;
     Changed;
   end;
 end;
@@ -2844,6 +3048,7 @@ begin
     case FKind of
       ksDateSelector: FDateTimePicker.ShowMode := TDatePickerShowMode.Date;
       ksTimeSelector: FDateTimePicker.ShowMode := TDatePickerShowMode.Time;
+      ksDateTimeSelector: FDateTimePicker.ShowMode := TDatePickerShowMode.DateTime;
     end;
     FDateTimePicker.Date := FDateTime;
     FDateTimePicker.OnDateChanged := DoSelectDateTime;
@@ -2869,8 +3074,9 @@ begin
   FDateTime := AValue;
 
   case FKind of
-    ksDateSelector: Detail := FormatDateTime('ddd, d mmmm, yyyy', FDateTime);
-    ksTimeSelector: Detail := FormatDateTime('hh:nn', FDateTime);
+    ksDateSelector: Detail := FormatDateTime('ddd, d mmmm, yy', FDateTime);
+    ksTimeSelector: Detail := FormatDateTime('h:nn am/pm', FDateTime);
+    ksDateTimeSelector: Detail := FormatDateTime('ddd, d mmmm, yy  h:nn am/pm', FDateTime);
   end;
 
 end;
@@ -2965,7 +3171,7 @@ begin
 
   ATextLayout.Font.Size := 16;
   if AEmojiOnly then
-    ATextLayout.Font.Size := 36;
+    ATextLayout.Font.Size := 40;
   ATextLayout.BeginUpdate;
   ATextLayout.Text := FBody;
   ATextLayout.WordWrap := True;
@@ -2981,11 +3187,16 @@ begin
 
   //Result := ATextLayout.TextRect.Height+20;
   //if FSender <> '' then
+  //if AEmojiOnly then
+  //  Result := ATextLayout.TextRect.Height+30
+  //else
   if AEmojiOnly then
-    Result := ATextLayout.TextRect.Height+40
+    Result := ATextLayout.TextRect.Height+32
   else
+    Result := ATextLayout.TextRect.Height+50;
+  //else
 
-  Result := ATextLayout.TextRect.Height+40;
+  //Result := ATextLayout.TextRect.Height+40;
 
 end;
 
@@ -3005,13 +3216,13 @@ begin
   inherited;
 
   APadding := 8;
+  AEmojiOnly := IsEmojiOnly;
 
   if FCached.IsEmpty then
   begin
-    AEmojiOnly := IsEmojiOnly;
     ATextLayout.Font.Size := 16;
     if AEmojiOnly then
-      ATextLayout.Font.Size := 36;
+      ATextLayout.Font.Size := 40;
     ATextLayout.BeginUpdate;
 
     AStr := FBody;
@@ -3078,8 +3289,9 @@ begin
     TTextAlign.Center: OffsetRect(r, (4), FContentRect.Top+(24));
     TTextAlign.Trailing: OffsetRect(r, FContentRect.Right-r.Width, FContentRect.Top+(24));
   end;
- 
 
+  if AEmojiOnly then
+    r.Offset(0, -10);
   ACanvas.DrawBitmap(FCached, FCached.BoundsF, r, 1, True);
 end;
 
@@ -3175,6 +3387,7 @@ finalization
   ATextLayout.Free;
 
 end.
+
 
 
 

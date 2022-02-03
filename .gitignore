@@ -67,11 +67,3 @@ __recovery/
 
 # Boss dependency manager vendor folder https://github.com/HashLoad/boss
 modules/
-/Demos/Overview/iOSDevice64/Debug
-/Demos/SideMenu/iOSDevice64/Release
-/Demos/Overview/Android/Debug
-/Demos/Overview/Android/Release
-/Demos/Overview/AndroidManifest.template.xml
-/*.tmp
-Release
-ksInputList2.pas

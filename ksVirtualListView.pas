@@ -375,6 +375,7 @@ type
     property Opacity: single read FOpacity write SetOpacity;
     property ImageShape: TksImageShape read FImageShape write SetImageShape;
     property Badge: integer read FBadge write SetBadge default 0;
+
   end;
 
   TksVListItemSwitchObject = class(TksVListItemBaseObject)
@@ -801,6 +802,7 @@ type
     procedure ScrollToBottom(AAnimated: Boolean);
     procedure ScrollToFirstChecked;
     procedure ScrollToItem(AItem: TksVListItem);
+    procedure SetItemImage(AImageID: string; ABmp: TBitmap);
 
     procedure UpdateScrollLimmits;
     procedure CheckAll;
@@ -868,9 +870,8 @@ procedure Register;
 implementation
 
 uses SysUtils, Math, System.Math.Vectors, ksPickers, FMX.VirtualKeyboard,
-  DateUtils, FMX.Forms, FMX.Ani, FMX.Utils, System.Threading,
-  FMX.DialogService
-  ;
+  DateUtils, FMX.Forms, FMX.Ani, FMX.Utils,
+  FMX.DialogService, System.Net.HttpClient, System.Threading;
 
 var
   AScreenScale: single;
@@ -916,7 +917,7 @@ var
   PixelWhiteColor: TAlphaColor;
   C: PAlphaColorRec;
 begin
-  TThread.Synchronize(nil,procedure
+  TThread.Synchronize(TThread.CurrentThread,procedure
                     var
                     x,y: Integer;
                     begin
@@ -1323,7 +1324,7 @@ begin
   Thread := TThread.CreateAnonymousThread (
     procedure
     begin
-      TThread.Synchronize(nil,
+      TThread.Synchronize(TThread.CurrentThread,
         procedure
         begin
           if Assigned(FBeforeSelectPickerItem) then
@@ -1357,7 +1358,7 @@ begin
       procedure
       begin
         Sleep(ADeselectAfter);
-        TThread.Synchronize(nil,
+        TThread.Synchronize(TThread.CurrentThread,
           procedure
           begin
              Selected := False;
@@ -1380,7 +1381,7 @@ begin
   if FBackground <> Value then
   begin
     FBackground := Value;
-    Changed;
+    //Changed;
   end;
 end;
 
@@ -1590,9 +1591,6 @@ end;
 procedure TksVListItem.ShowEditInput;
 
 var
-  {$IFNDEF ANDROID}
-  ATask: ITask;
-  {$ENDIF}
   AStr: string;
 begin
   PickerService.HidePickers;
@@ -1610,17 +1608,20 @@ begin
       if Assigned(FOnEditInput) then
         FOnEditInput(Self, Self, AStr);
       {$ELSE}
-      ATask := TTask.Create (procedure ()
-      begin
-        Application.processMessages;
-        Sleep(100);
-        TThread.Synchronize(nil,procedure
-                     begin
-                       if Assigned(FOnEditInput) then
-                         FOnEditInput(Self, Self, AStr);
-                     end);
-      end);
-      ATask.Start;
+      TThread.CreateAnonymousThread(
+        procedure
+        begin
+          Application.processMessages;
+          Sleep(100);
+          TThread.Synchronize(TThread.CurrentThread,
+            procedure
+            begin
+              if Assigned(FOnEditInput) then
+                FOnEditInput(Self, Self, AStr);
+            end
+          );
+        end
+      ).Start;
       {$ENDIF}
     end;
   end);
@@ -1659,7 +1660,7 @@ begin
     end;
 
     if FUseActionSheet then
-      PickerService.ShowActionSheet(AItems, '', DoItemPickerChanged)
+      PickerService.ShowActionSheet(AItems, '', DoItemPickerChanged, nil)
     else
       PickerService.ShowItemPicker(FOwner.FOwner.LocalToScreen(FOwner.FOwner.FMouseDownPos), AItems, '',  AIndex, DoItemPickerChanged);
   finally
@@ -1670,7 +1671,7 @@ end;
 procedure TksVListItem.ShowDatePicker(ASelected: TDateTime);
 begin
   PickerService.HidePickers;
-  PickerService.ShowDatePicker(Screen.MousePos, '', ASelected, DoDatePickerChanged);
+  PickerService.ShowDatePicker(Screen.MousePos, '', ASelected, DoDatePickerChanged, nil);
 end;
 
 {$IFDEF IOS}
@@ -1991,6 +1992,7 @@ end;
 
 function TksVListItem.GetItemData(const AIndex: string): TValue;
 begin
+  Result := nil;
   if (FData <> nil) and not FData.TryGetValue(AIndex, Result) then
     Result := TValue.Empty;
 end;
@@ -2143,7 +2145,6 @@ procedure TksVirtualListView.DoItemClicked(AItem: TksVListItem;
   ACallClickEvent: Boolean);
 var
   AHandled: Boolean;
-  ATask: ITask;
 begin
   if AItem = nil then
     Exit;
@@ -2171,20 +2172,19 @@ begin
 
   if AHandled = False then
   begin
-   aTask := TTask.Create (procedure ()
-   begin
-      Sleep(100);
-      TThread.Synchronize(TThread.Current,
-        procedure
-        begin
-            if Assigned(FOnItemClick) then
-              FOnItemClick(Self, AItem);
-        end
-      );
-   end);
-  aTask.Start;
-
-
+    TThread.CreateAnonymousThread(
+      procedure
+      begin
+        Sleep(100);
+        TThread.Synchronize(TThread.CurrentThread,
+          procedure
+          begin
+              if Assigned(FOnItemClick) then
+                FOnItemClick(Self, AItem);
+          end
+        );
+      end
+    ).Start;
   end;
 end;
 
@@ -2284,38 +2284,42 @@ var
   AText: string;
   AState: TCanvasSaveState;
 begin
-  if (ScrollPos < 0) and (FPullToRefresh.Enabled) then
-  begin
-    Canvas.Stroke.Color := claGainsboro;
-    Canvas.Stroke.Kind := TBrushKind.Solid;
-    Canvas.DrawLine(PointF(0, 0 - FScrollPos), PointF(Width, 0 - FScrollPos), 1);
+  try
+    if (ScrollPos < 0) and (FPullToRefresh.Enabled) then
+    begin
+      Canvas.Stroke.Color := claGainsboro;
+      Canvas.Stroke.Kind := TBrushKind.Solid;
+      Canvas.DrawLine(PointF(0, 0 - FScrollPos), PointF(Width, 0 - FScrollPos), 1);
 
-    ARefreshArea := RectF(0, 0, Width, 0 - ScrollPos);
-    AState := Canvas.SaveState;
-    try
-      Canvas.IntersectClipRect(ARefreshArea);
-      Canvas.Fill.Color := claDimgray;
-      Canvas.Font.Size := 14;
-      Canvas.Fill.Kind := TBrushKind.Solid;
+      ARefreshArea := RectF(0, 0, Width, 0 - ScrollPos);
+      AState := Canvas.SaveState;
+      try
+        Canvas.IntersectClipRect(ARefreshArea);
+        Canvas.Fill.Color := claDimgray;
+        Canvas.Font.Size := 14;
+        Canvas.Fill.Kind := TBrushKind.Solid;
 
-      AText := FPullToRefresh.PullText;
-      if FPendingRefresh then
-      begin
-        AText := FPullToRefresh.ReleaseText;
-        if Assigned(FOnReleaseText) and (not FOnReleaseIsFiring) then
+        AText := FPullToRefresh.PullText;
+        if FPendingRefresh then
         begin
-          FOnReleaseText(self);
-          FOnReleaseIsFiring := true;
+          AText := FPullToRefresh.ReleaseText;
+          if Assigned(FOnReleaseText) and (not FOnReleaseIsFiring) then
+          begin
+            FOnReleaseText(self);
+            FOnReleaseIsFiring := true;
+          end;
+        end
+        else
+        begin
+          FOnReleaseIsFiring := false;
         end;
-      end
-      else
-      begin
-        FOnReleaseIsFiring := false;
+        Canvas.FillText(RectF(0, 0, Width, 50), AText, False, 1, [], TTextAlign.Center, TTextAlign.Center);
+      finally
+        Canvas.RestoreState(AState);
       end;
-      Canvas.FillText(RectF(0, 0, Width, 50), AText, False, 1, [], TTextAlign.Center, TTextAlign.Center);
-    finally
-      Canvas.RestoreState(AState);
     end;
+  except
+    //
   end;
 end;
 
@@ -2385,9 +2389,7 @@ begin
     inherited EndUpdate;
     FItems.UpdateItemRects;
     UpdateScrollLimmits;
-
     Repaint;
-    Application.ProcessMessages;
   end;
 end;
 
@@ -2578,7 +2580,7 @@ end;
 
 procedure TksVirtualListView.ScrollToBottom(AAnimated: Boolean);
 begin
-  Application.ProcessMessages;
+  //Application.ProcessMessages;
   if AAnimated then
     TAnimator.AnimateIntWait(Self, 'ScrollPos', FMaxScrollPos)
   else
@@ -2676,6 +2678,20 @@ begin
   end;
 end;
 
+procedure TksVirtualListView.SetItemImage(AImageID: string; ABmp: TBitmap);
+var
+  AItem: TksVListitem;
+begin
+  for AItem in ITems do
+  begin
+    if AItem.Image.ID = AImageID then
+    begin
+      AItem.Image.Bitmap := ABmp;
+      AItem.Changed;
+    end;
+  end;
+end;
+
 procedure TksVirtualListView.SetItemIndex(const Value: integer);
 var
   ICount: integer;
@@ -2693,35 +2709,39 @@ end;
 
 procedure TksVirtualListView.SetScrollPos(const Value: integer);
 begin
-  if Round(Value) <> Round(FScrollPos) then
-  begin
-    UnfocusControl;
-    PickerService.HidePickers;
-
-    FItems.UpdateItemRects;
-    FScrollBar.Opacity := 1;
-    FScrollPos := Value;
-    FScrollBar.Visible := FShowScrollBar;
-
-    InvalidateRect(ClipRect);
-    if Assigned(FOnScroll) then
-      FOnScroll(Self);
-    FScrollBar.OnChange := nil;
-    FScrollBar.Value := Value;
-
-    if value = 0 then
-      FAniCalc.UpdatePosImmediately;
-
-    if (value = 0) and (FPendingRefresh) then
+  try
+    if Round(Value) <> Round(FScrollPos) then
     begin
-      FAniCalc.UpdatePosImmediately;
-      if FPullToRefresh.Enabled  then
+      UnfocusControl;
+      PickerService.HidePickers;
+
+      FItems.UpdateItemRects;
+      FScrollBar.Opacity := 1;
+      FScrollPos := Value;
+      FScrollBar.Visible := FShowScrollBar;
+
+      InvalidateRect(ClipRect);
+      if Assigned(FOnScroll) then
+        FOnScroll(Self);
+      FScrollBar.OnChange := nil;
+      FScrollBar.Value := Value;
+
+      if value = 0 then
+        FAniCalc.UpdatePosImmediately;
+
+      if (value = 0) and (FPendingRefresh) then
       begin
-        if Assigned(FOnPullRefresh) then
-          FOnPullRefresh(Self);
+        FAniCalc.UpdatePosImmediately;
+        if FPullToRefresh.Enabled  then
+        begin
+          if Assigned(FOnPullRefresh) then
+            FOnPullRefresh(Self);
+        end;
       end;
+     FScrollBar.OnChange := ScrollBarChanged;
     end;
-   FScrollBar.OnChange := ScrollBarChanged;
+  except
+    //
   end;
 end;
 
@@ -2822,69 +2842,79 @@ var
   ACanDelete: Boolean;
 begin
   inherited;
-  Root.SetFocused(nil);
-  if FScrollPos < 0 then
-    Exit;
+  try
+    Root.SetFocused(nil);
+    if FScrollPos < 0 then
+      Exit;
 
 
-  KillTimer(FLongTapTimer);
-  HideKeyboard;
-  UnfocusControl;
-  //if FFilterEdit <> nil then
-  //  FFilterEdit.Unfocus;
-  FMouseDownTime := Now;
-  FMouseDownPos := PointF(x, y);
-  if not FScrollingDisabled then
-    FAniCalc.MouseDown(x, y);
-  FMouseDownItem := FItems.ItemAtPos(x, y);
+    KillTimer(FLongTapTimer);
+    HideKeyboard;
+    UnfocusControl;
+    //if FFilterEdit <> nil then
+    //  FFilterEdit.Unfocus;
+    FMouseDownTime := Now;
+    FMouseDownPos := PointF(x, y);
+    if not FScrollingDisabled then
+      FAniCalc.MouseDown(x, y);
+    FMouseDownItem := FItems.ItemAtPos(x, y);
 
-  if (FMouseDownItem <> nil) and (FMouseDownItem.FOffset <> 0) then
-  begin
-    ABtn := FMouseDownItem.FActionButtons.ButtonAtXY(x, y);
-    if ABtn <> nil then
+    if (FMouseDownItem <> nil) and (FMouseDownItem.FOffset <> 0) then
     begin
-      FAniCalc.MouseUp(x, y);
-      if ABtn.IsDeleteButton then
+      ABtn := FMouseDownItem.FActionButtons.ButtonAtXY(x, y);
+      if ABtn <> nil then
       begin
-        ACanDelete := True;
-        if Assigned(FCanDeleteItem) then
-          FCanDeleteItem(Self, FMouseDownItem, ACanDelete);
-        if ACanDelete then
+        FAniCalc.MouseUp(x, y);
+        if ABtn.IsDeleteButton then
         begin
-          FMouseDownItem.DeleteItem;
-          Exit;
+          ACanDelete := True;
+          if Assigned(FCanDeleteItem) then
+            FCanDeleteItem(Self, FMouseDownItem, ACanDelete);
+          if ACanDelete then
+          begin
+            FMouseDownItem.DeleteItem;
+            Exit;
+          end;
+        end
+        else
+        begin
+
+          if Assigned(FOnActionButtonClick) then
+            FOnActionButtonClick(Self, FMouseDownItem, ABtn);
         end;
-      end
-      else
-      begin
-
-        if Assigned(FOnActionButtonClick) then
-          FOnActionButtonClick(Self, FMouseDownItem, ABtn);
       end;
+      FMouseDownItem.SlideIn;
+      FMouseDownItem := nil;
+      FAniCalc.MouseLeave;
+      Exit;
     end;
-    FMouseDownItem.SlideIn;
-    FMouseDownItem := nil;
-    FAniCalc.MouseLeave;
-    Exit;
+
+    ResetItemOffsets(nil);
+
+    if FMouseDownItem <> nil then
+      FLongTapTimer := CreateTimer(C_LONG_TAP_DURATION, LongTapTimerProc)
+  except
+    //on E:Exception do
+    //  raise Exception.Create('MouseDown - '+E.Message);
   end;
-
-  ResetItemOffsets(nil);
-
-  if FMouseDownItem <> nil then
-    FLongTapTimer := CreateTimer(C_LONG_TAP_DURATION, LongTapTimerProc)
 end;
 
 procedure TksVirtualListView.MouseMove(Shift: TShiftState; x, y: single);
 begin
-  FMousePt := PointF(x, y);
-  if FAniCalc.Down then
-    FAniCalc.MouseMove(x, y);
-  if (ssLeft in Shift) then
-    FPendingRefresh := ((ScrollPos <= -50) and (FAniCalc.Down));
-  if (FAniCalc.Down) and (FMouseDownPos.y <> y) then
-  begin
-    if FSelectionOptions.KeepSelection = False then
-      DeselectAll;
+  try
+    FMousePt := PointF(x, y);
+    if FAniCalc.Down then
+      FAniCalc.MouseMove(x, y);
+    if (ssLeft in Shift) then
+      FPendingRefresh := ((ScrollPos <= -50) and (FAniCalc.Down));
+    if (FAniCalc.Down) and (FMouseDownPos.y <> y) then
+    begin
+      if FSelectionOptions.KeepSelection = False then
+        DeselectAll;
+    end;
+  except
+    //on E:Exception do
+    //  raise Exception.Create('MouseMove - '+E.Message);
   end;
 end;
 
@@ -2893,96 +2923,101 @@ procedure TksVirtualListView.MouseUp(Button: TMouseButton; Shift: TShiftState;
 var
   ATapRect: TRectF;
   ASwipeRect: TRectF;
-  ATapDuration: integer;
+  ATapDuration: Int64;
   AItem: TksVListItem;
   ASwipeDirection: TksVListSwipeDirection;
   ADidSwipe: Boolean;
   AObj: TksVListItemBaseObject;
 begin
-  inherited;
-  if FMouseDownItem <> nil then
-  begin
-    if (FMouseDownItem.State in [Deleting, Deleted, Sliding]) then
+  try
+    inherited;
+    if FMouseDownItem <> nil then
     begin
-      Exit;
-    end;
-  end;
-
-  // check for quick tap (within 300 ms)
-  FAniCalc.MouseUp(x, y);
-
-  if (FMouseDownItem <> nil) and (FMouseDownItem.FOffset <> 0) then
-  begin
-    if (FMouseDownItem.State in [Deleting, Deleted]) then
-      Exit;
-    // check for action button tap...
-    if FMouseDownItem.State = Normal then
-    begin
-      FMouseDownItem.SlideIn;
-      Exit;
-    end;
-  end;
-
-  ATapRect := RectF(FMouseDownPos.x - 8, FMouseDownPos.y - 8,
-    FMouseDownPos.x + 8, FMouseDownPos.y + 8);
-  ASwipeRect := RectF(0, FMouseDownPos.y - 32, Width, FMouseDownPos.y + 32);
-  ATapDuration := MilliSecondsBetween(FMouseDownTime, Now);
-
-  AItem := FMouseDownItem;
-  if AItem <> nil then
-  begin
-    // swipe...
-    ADidSwipe := False;
-    if PtInRect(ASwipeRect, PointF(x, y)) then
-    begin
-
-      if ATapDuration <= C_LONG_TAP_DURATION then
+      if (FMouseDownItem.State in [Deleting, Deleted, Sliding]) then
       begin
-        // swipe
-        if (x < FMouseDownPos.x - 16) or (x > FMouseDownPos.x + 16) then
-        begin
-          if x < (FMouseDownPos.x) then
-            ASwipeDirection := ksSwipeFromRight
-          else
-            ASwipeDirection := ksSwipeFromLeft;
+        Exit;
+      end;
+    end;
 
-          DoItemSwiped(AItem, ASwipeDirection);
-          FMouseDownItem := nil;
-          Exit;
+    // check for quick tap (within 300 ms)
+    FAniCalc.MouseUp(x, y);
+
+    if (FMouseDownItem <> nil) and (FMouseDownItem.FOffset <> 0) then
+    begin
+      if (FMouseDownItem.State in [Deleting, Deleted]) then
+        Exit;
+      // check for action button tap...
+      if FMouseDownItem.State = Normal then
+      begin
+        FMouseDownItem.SlideIn;
+        Exit;
+      end;
+    end;
+
+    ATapRect := RectF(FMouseDownPos.x - 8, FMouseDownPos.y - 8,
+      FMouseDownPos.x + 8, FMouseDownPos.y + 8);
+    ASwipeRect := RectF(0, FMouseDownPos.y - 32, Width, FMouseDownPos.y + 32);
+    ATapDuration := MilliSecondsBetween(FMouseDownTime, Now);
+
+    AItem := FMouseDownItem;
+    if AItem <> nil then
+    begin
+      // swipe...
+      ADidSwipe := False;
+      if PtInRect(ASwipeRect, PointF(x, y)) then
+      begin
+
+        if ATapDuration <= C_LONG_TAP_DURATION then
+        begin
+          // swipe
+          if (x < FMouseDownPos.x - 16) or (x > FMouseDownPos.x + 16) then
+          begin
+            if x < (FMouseDownPos.x) then
+              ASwipeDirection := ksSwipeFromRight
+            else
+              ASwipeDirection := ksSwipeFromLeft;
+
+            DoItemSwiped(AItem, ASwipeDirection);
+            FMouseDownItem := nil;
+            Exit;
+          end;
         end;
       end;
-    end;
 
-    // tap and long tap
-    if (PtInRect(ATapRect, PointF(x, y))) and (ADidSwipe = False) then
-    begin
-      if ATapDuration <= C_LONG_TAP_DURATION then
+      // tap and long tap
+      if (PtInRect(ATapRect, PointF(x, y))) and (ADidSwipe = False) then
       begin
-        // tap
-        DoItemClicked(AItem, True);
-      end
-      else
-      begin
-        // long tap
-        DoItemLongTap(AItem);
-        if FSelectionOptions.FKeepSelection = False then
-          FMouseDownItem.Selected := False;
+        if ATapDuration <= C_LONG_TAP_DURATION then
+        begin
+          // tap
+          DoItemClicked(AItem, True);
+        end
+        else
+        begin
+          // long tap
+          DoItemLongTap(AItem);
+          if FSelectionOptions.FKeepSelection = False then
+            FMouseDownItem.Selected := False;
+        end;
       end;
+
     end;
 
-  end;
-
-  if FMouseDownItem <> nil then
-  begin
-    AObj := nil;
-    if (y > (FMouseDownPos.Y-8)) and (y < (FMouseDownPos.Y+8))  then
+    if FMouseDownItem <> nil then
     begin
-      if FMouseDownItem.Objects <> nil then
-        AObj := FMouseDownItem.Objects.ObjectAtPos(FMouseDownItem, x, y);
-      if AObj <> nil then
-        AObj.Clicked(x-AObj.FObjectRect.Left, y-AObj.FObjectRect.Top);
-    end;
+      AObj := nil;
+      if (y > (FMouseDownPos.Y-8)) and (y < (FMouseDownPos.Y+8))  then
+      begin
+        if FMouseDownItem.Objects <> nil then
+          AObj := FMouseDownItem.Objects.ObjectAtPos(FMouseDownItem, x, y);
+        if AObj <> nil then
+          AObj.Clicked(x-AObj.FObjectRect.Left, y-AObj.FObjectRect.Top);
+      end;
 
+    end;
+  except
+    //on E:Exception do
+    //  raise Exception.Create('MouseUp - '+E.Message);
   end;
 
 end;
@@ -3107,8 +3142,11 @@ var
   ICount: integer;
 begin
   Result := Add(ATitle, ASubTitle, ADetail, AImage, atMore);
-  for ICount := 0 to AItems.Count-1 do
-    Result.PickerItems.Add(AItems[ICount]);
+  if AItems <> nil then
+  begin
+    for ICount := 0 to AItems.Count-1 do
+      Result.PickerItems.Add(AItems[ICount]);
+  end;
   Result.FDefaultPickerItem := ADefaultItem;
   Result.FUseActionSheet := AUseActionSheet;
   Result.SelectorType := TksVListItemSelectorType.ksSelectorPicker;
@@ -3321,6 +3359,8 @@ end;
 
 procedure TksVListItemList.Changed(AUpdateScrollLimits: Boolean);
 begin
+  if not Assigned(FOwner) then
+    Exit;
   if FOwner.FUpdateCount > 0 then
     Exit;
   if AUpdateScrollLimits then
@@ -3801,6 +3841,7 @@ end;
 constructor TksVListItemImageObject.Create(AItem: TksVListItem);
 begin
   inherited;
+
   FBitmap := TBitmap.Create;;
   FRenderImage := TBitmap.Create;
   //FCached := nil;
@@ -3816,6 +3857,79 @@ begin
   inherited;
 end;
 
+                        {
+procedure DownloadImage(lv: TksVirtualListView; AItemID: string; AUrl: string);
+var
+  AHttp: THttpClient;
+  AStream: TStream;
+begin
+  TThread.CreateAnonymousThread(
+    procedure
+    begin
+      AHttp := THTTPClient.Create;
+      AStream := TMemoryStream.Create;
+      try
+        AHttp.Get(AUrl, AStream);
+        AStream.Position := 0;
+        TThread.Synchronize(nil,
+          procedure
+          begin
+            lv.finItemByTagStr()
+            //AItem.Bitmap.LoadFromStream(AStream);
+            //AItem.Changed;
+          end
+        );
+      finally
+        AHttp.Free;
+        AStream.Free;
+      end;
+    end
+  ).Start;
+end;
+        } {
+procedure DownloadImageAsync(lv: TksVirtualListView; AId, AUrl: string);
+//begin
+  //TThread.CreateAnonymousThread(
+  //  procedure
+    var
+      AHttp: THttpClient;
+      AStream: TStream;
+    begin
+      AHttp := THTTPClient.Create;
+      AStream := TMemoryStream.Create;
+      try
+        AHttp.Get(AUrl, AStream);
+        AStream.Position := 0;
+        TThread.Synchronize(TThread.CurrentThread,
+          procedure
+          var
+            AItem: TksVListItem;
+          begin
+            for AItem in lv.Items do
+            begin
+              if AItem.Image.FDownloadID = AId then
+              begin
+                AItem.image.Bitmap.LoadFromStream(AStream);
+                //AItem.Changed;
+                Exit;
+              end;
+            end;
+          end
+        );
+      finally
+        AHttp.Free;
+        AStream.Free;
+      end;
+//    end
+//  ).Start;
+end;    }
+   {
+procedure TksVListItemImageObject.DownloadGraphicFromURL(AUrl: string);
+begin
+  if AUrl <> '' then
+    DownloadImageAsync(ListView, FDownloadID, AUrl);
+end;
+      }
 procedure TksVListItemImageObject.DrawToCanvas(ACanvas: TCanvas;
   AItemRect: TRectF);
 var
@@ -4628,5 +4742,6 @@ finalization
   FreeAndNil(ASwitchBmp[False]);
 
 end.
+
 
 

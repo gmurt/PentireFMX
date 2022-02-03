@@ -26,13 +26,10 @@ unit ksToolBar;
 
 interface
 
-{_$DEFINE USE_FORM_STACK}
-
-
-uses Classes, FMX.StdCtrls, FMX.Graphics, FMX.Objects, FMX.Types,
-  System.UITypes, System.UIConsts, ksFormStack,
-
-  FMX.Controls.Presentation, FMX.Controls, System.Types;
+uses
+  Classes, FMX.StdCtrls, FMX.Graphics, FMX.Objects, FMX.Types,
+  System.UITypes, System.UIConsts, FMX.Controls.Presentation, FMX.Controls,
+  System.Types;
 
 type
   [ComponentPlatformsAttribute(pidAllPlatforms)]
@@ -73,6 +70,7 @@ type
     procedure DisableBackButton;
     procedure EnableBackButton;
   published
+    property Align;
     property Font: TFont read FFont write SetFont;
     property Text: string read FText write SetText;
     property Size;
@@ -97,7 +95,7 @@ type
 implementation
 
 uses Math, System.TypInfo, SysUtils, ksPickers, FMX.DialogService,
-  FMX.Platform, FMX.Forms, FMX.VirtualKeyboard;
+  FMX.Platform, FMX.Forms, FMX.VirtualKeyboard, ksFormStack;
 
 procedure Register;
 begin
@@ -110,51 +108,44 @@ procedure HideKeyboard;
 var
   KeyboardService: IFMXVirtualKeyboardService;
 begin
-  if TPlatformServices.Current.SupportsPlatformService(IFMXVirtualKeyboardService, IInterface(KeyboardService)) then
-    KeyboardService.HideVirtualKeyboard;
+  try
+    if TPlatformServices.Current.SupportsPlatformService(IFMXVirtualKeyboardService, IInterface(KeyboardService)) then
+      KeyboardService.HideVirtualKeyboard;
+  except
+
+  end;
 end;
 
 
 { TksToolbar }
 
 procedure TksToolbar.ButtonClicked(Sender: TObject);
-var
-  Thread: TThread;
 begin
-  Thread := TThread.CreateAnonymousThread (
-    procedure
+  try
+    if GlobalFormStack.Depth > 1 then
     begin
-      TThread.Synchronize (TThread.CurrentThread,
-        procedure
-        begin
 
-          if GlobalFormStack.Depth > 1 then
-          begin
+      if Assigned(FOnBackButtonClick) then
+      begin
 
-            if Assigned(FOnBackButtonClick) then
-            begin
+        FOnBackButtonClick(Self);
 
-              FOnBackButtonClick(Self);
+      end
+      else
+      begin
 
-            end
-            else
-            begin
+        GlobalFormStack.Pop;
 
-              GlobalFormStack.Pop;
-
-            end;
-          end
-          else
-          begin
-            FOnMenuButtonClick(Self);
-          end;
-          HideKeyboard;
-          PickerService.HidePickers;
-        end
-      );
+      end;
     end
-  );
-  Thread.Start;
+    else
+    begin
+      if Assigned(FOnMenuButtonClick) then
+        FOnMenuButtonClick(Self);
+    end;
+  except
+    //
+  end;
 end;
 
 
@@ -171,7 +162,8 @@ begin
   FButton := TSpeedButton.Create(Self);
   FButton.Align := TAlignLayout.Left;
   FButton.StyleLookup := 'detailstoolbutton';
-  FButton.Width := 44;
+  FButton.Width := 56;
+  FButton.TextSettings.Trimming := TTextTrimming.None;
   FButton.TouchTargetExpansion.Rect := Rect(4, 4, 4, 4);
   FButtonColor := claDodgerblue;
   FButton.IconTintColor := claDodgerblue;

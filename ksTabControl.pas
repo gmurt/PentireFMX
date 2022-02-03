@@ -256,7 +256,7 @@ var
   PixelWhiteColor: TAlphaColor;
   C: PAlphaColorRec;
 begin
-  TThread.Synchronize(nil,procedure
+  TThread.Synchronize(TThread.CurrentThread,procedure
                     var
                     x,y: Integer;
                     begin
@@ -405,10 +405,10 @@ begin
 end;
 
 procedure TksTabItem.RedrawBadge;
-var
-  s: single;
+//var
+//  s: single;
 begin
-  if FBadgeValue = 0 then
+{  if FBadgeValue = 0 then
     FreeAndNil(FBadge)
   else
   begin
@@ -418,7 +418,7 @@ begin
     //FBadge.Canvas.Fill.Color := claRed;
     FBadge.Canvas.Fill.Kind := TBrushKind.Solid;
     FBadge.Canvas.FillEllipse(RectF(0, 0, FBadge.Width, FBadge.Height), 1);
-  end;
+  end; }
 end;
 
 procedure TksTabItem.SetIconType(const Value: TksTabItemIcon);
