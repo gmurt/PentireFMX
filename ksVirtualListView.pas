@@ -1261,6 +1261,7 @@ begin
   FreeAndNil(FActionButtons);
   FreeAndNil(FPickerItems);
   FreeAndNil(FData);
+  FreeAndNil(FDeleteCalc);
   inherited;
 end;
 
