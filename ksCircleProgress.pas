@@ -40,7 +40,6 @@ type
 	private
 		FBitmap: TBitmap;
 		FValue, FValue2: single;
-    FMax: single;
 		FBackgroundColor: TAlphaColor;
 		FColor, FColor2: TAlphaColor;
 		FCaptionType: TksCircleProgressCaptionType;
@@ -76,7 +75,6 @@ type
 		property Color: TAlphaColor read FColor write SetColor
 			default claDodgerblue;
 		property Value: single read FValue write SetValue;
-    property MaxValue: single read FMax write FMax;
 
     property Color2: TAlphaColor read FColor2 write SetColor2
 			default claDarkmagenta;
@@ -121,7 +119,6 @@ begin
 	FText := '';
 	FValue := 0;
   FValue2 := 0;
-  FMax := 100;
 	Width := 150;
 	Height := 150;
 	FThickness := 15;
@@ -149,7 +146,7 @@ begin
 	ACaption := '';
 	case FCaptionType of
 		ksCirclePercent:
-			ACaption := ' ' + InTToStr(Round((100 / FMax) * FValue)) + '%';
+			ACaption := ' ' + InTToStr(Round(FValue)) + '%';
 		ksCircleCustom:
 			ACaption := Text;
 	end;
@@ -200,7 +197,7 @@ begin
 		FBitmap.Canvas.Stroke.Color := FColor2;
 		FBitmap.Canvas.Stroke.Kind := TBrushKind.Solid;
 
-    while AAngle < ((360 / FMax) * FValue2) do
+    while AAngle < ((360 / 100) * FValue2) do
 		begin
 
 			x2 := x1 + (cos(DegToRad(AAngle - 90)) * (((Width * AScale) / 2) -
@@ -219,7 +216,7 @@ begin
 		FBitmap.Canvas.Stroke.Color := FColor;
 		FBitmap.Canvas.Stroke.Kind := TBrushKind.Solid;
 
-		while AAngle < ((360 / FMax) * FValue) do
+		while AAngle < ((360 / 100) * FValue) do
 		begin
 
 			x2 := x1 + (cos(DegToRad(AAngle - 90)) * (((Width * AScale) / 2) -
@@ -308,7 +305,7 @@ begin
 	begin
 		FValue := Value;
 		FValue := Max(FValue, 0);
-		FValue := Min(FValue, FMax);
+		FValue := Min(FValue, 100);
 		RecreateBitmap;
 		Repaint;
 {$IFDEF ANDROID}
@@ -323,7 +320,7 @@ begin
 	begin
 		FValue2 := Value;
 		FValue2 := Max(FValue2, 0);
-		FValue2 := Min(FValue2, FMax);
+		FValue2 := Min(FValue2, 100);
 		RecreateBitmap;
 		Repaint;
 {$IFDEF ANDROID}

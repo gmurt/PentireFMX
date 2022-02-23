@@ -1,6 +1,6 @@
 {*******************************************************************************
 *                                                                              *
-*  PentireFMX                                                                  *
+*  PentireFMX                                                                  *                    formst
 *                                                                              *
 *  https://github.com/gmurt/PentireFMX                                         *
 *                                                                              *
@@ -70,7 +70,6 @@ type
     procedure DisableBackButton;
     procedure EnableBackButton;
   published
-    property Align;
     property Font: TFont read FFont write SetFont;
     property Text: string read FText write SetText;
     property Size;

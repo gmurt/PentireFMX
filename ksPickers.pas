@@ -77,8 +77,6 @@ type
     procedure DoTimeSelected(Sender: TObject; const ATime: TDateTime);
     {$IFDEF IOS}
     procedure DoDateTimeSelected(Sender: TObject; const ADateTime: TDateTime);
-    {$ENDIF}
-    {$IFDEF DPF}
     procedure DoActionSheetDismiss( Sender: TObject; ButtonIndex: Integer );
     {$ENDIF}
     procedure DoHide(Sender: TObject);
@@ -162,7 +160,6 @@ end;
 procedure TksPickerService.DoActionSheetButtonClick(Sender: TObject;
   ButtonIndex: Integer);
 begin
-
   TThread.CreateAnonymousThread(
     procedure
     begin
@@ -178,15 +175,14 @@ begin
   ).Start;
 end;
 
-{$ENDIF}
-
-{$IFDEF DPF}
 procedure TksPickerService.DoActionSheetDismiss(Sender: TObject;
   ButtonIndex: Integer);
 begin
   DoHide(Sender);
 end;
+
 {$ENDIF}
+
 
 procedure TksPickerService.DoDateSelected(Sender: TObject;
   const ADate: TDateTime);

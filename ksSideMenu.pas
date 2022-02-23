@@ -74,7 +74,6 @@ type
     procedure UpdateMenu;
     procedure OffsetScreenClick(Sender: TObject);
     procedure DoItemClick(Sender: TObject; AItem: TksBaseInputListItem; AID: string);
-    procedure DoAfterCloseMenu(ATargetForm: TCommonCustomForm);
   public
     constructor Create(AOwner: TComponent); override;
     destructor Destroy; override;
@@ -177,15 +176,75 @@ end;
 
 { TksSideMenu }
 
-procedure TksSideMenu.DoAfterCloseMenu(ATargetForm: TCommonCustomForm);
+procedure TksSideMenu.CloseMenu(ATargetForm: TCommonCustomForm);
 var
   ATransitionForm: ITransitionForm;
 begin
+  if ATargetForm = nil then
+    ATargetForm := FCallingForm;
+
+  if ATargetForm <> FCallingForm then
+  begin
+    ATargetForm.SetBounds(FCallingForm.Bounds);
+    if Assigned(FBeforeShowForm) then
+      FBeforeShowForm(Self, ATargetForm);
+
+    GenerateFormBitmap(ATargetForm, FCachedForm);
+    FImage.Bitmap := FCachedForm;
+  end;
+
+  FImage.HitTest := False;
+  FMenu.HitTest := False;
+  FImage.Visible := True;
+  FMenu.Visible := True;
+  {$IFDEF ANDROID}
+  Application.ProcessMessages;
+
+  FImage.HitTest := False;
+  FMenu.HitTest := False;
+
+
+  TAnimator.AnimateFloat(FImage, 'Position.X', 0, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
+  TThread.CreateAnonymousThread(
+    procedure
+    begin
+      Sleep(Round(C_MENU_SLIDE_SPEED*1000));
+      TThread.Synchronize(TThread.CurrentThread,
+        procedure
+        begin
+          if Supports(ATargetForm, ITransitionForm, ATransitionForm) then
+            ATransitionForm.BeforeTransitionIntoView(True, nil);
+          ATargetForm.Show;
+          Application.ProcessMessages;
+          if Assigned(FAfterShowForm) then
+            FAfterShowForm(Self, ATargetForm);
+
+          FCallingForm.RemoveObject(FMenu);
+          FCallingForm.RemoveObject(FImage);
+          if FCallingForm <> ATargetForm then
+            FCallingForm.Hide;
+
+          GlobalFormStack.Clear(ATargetForm);
+
+          if Assigned(ATransitionForm) then
+            ATransitionForm.AfterTransitionIntoView(True, nil);
+        end
+      );
+    end
+  ).Start;
+
+
+
+  {$ELSE}
+  TAnimator.AnimateFloatWait(FImage, 'Position.X', 0, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
   FImage.HitTest := True;
   FMenu.HitTest := True;
 
+  if Supports(ATargetForm, ITransitionForm, ATransitionForm) then
+    ATransitionForm.BeforeTransitionIntoView(True, nil);
 
   ATargetForm.Show;
+  Application.ProcessMessages;
   if Assigned(FAfterShowForm) then
     FAfterShowForm(Self, ATargetForm);
 
@@ -200,68 +259,12 @@ begin
 
   if Supports(ATargetForm, ITransitionForm, ATransitionForm) then
     ATransitionForm.AfterTransitionIntoView(True, nil);
-end;
 
-procedure TksSideMenu.CloseMenu(ATargetForm: TCommonCustomForm);
-var
-  ATransitionForm: ITransitionForm;
-begin
-  if ATargetForm = nil then
-    ATargetForm := FCallingForm;
-
-  if ATargetForm <> FCallingForm then
-  begin
-    ATargetForm.SetBounds(FCallingForm.Bounds);
-    if Assigned(FBeforeShowForm) then
-      FBeforeShowForm(Self, ATargetForm);
-
-    if Supports(ATargetForm, ITransitionForm, ATransitionForm) then
-      ATransitionForm.BeforeTransitionIntoView(True, nil);
+  //if Assigned(ATransitionForm) then
+  //  ATransitionForm.AfterTransitionIntoView(True, nil);
 
 
-    GenerateFormBitmap(ATargetForm, FCachedForm);
-    FImage.Bitmap := FCachedForm;
-  end;
-
-  FImage.HitTest := False;
-  FMenu.HitTest := False;
-  FImage.Visible := True;
-  FMenu.Visible := True;
-
-  TThread.CreateAnonymousThread(
-    procedure
-    begin
-      Sleep(100);
-      TThread.Synchronize(nil,
-        procedure
-        begin
-          {$IFNDEF ANDROID}
-          TAnimator.AnimateFloatWait(FImage, 'Position.X', 0, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
-          DoAfterCloseMenu(ATargetForm);
-          {$ELSE}
-          TAnimator.AnimateFloat(FImage, 'Position.X', 0, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
-          TThread.CreateAnonymousThread(
-            procedure
-            begin
-              Sleep(Round(C_MENU_SLIDE_SPEED*1000));
-              TThread.Synchronize(nil,
-                procedure
-                begin
-                  DoAfterCloseMenu(ATargetForm);
-                end
-              );
-            end
-          ).Start;
-          {$ENDIF}
-
-        end
-      );
-
-
-    end
-  ).Start;
-
- // {$ENDIF}
+  {$ENDIF}
 
 end;
 
@@ -328,24 +331,17 @@ begin
   FImage.Visible := True;
   FMenu.Visible := True;
 
-  TThread.CreateAnonymousThread(
-    procedure
-    begin
-      Sleep(200);
-      TThread.Synchronize(nil,
-        procedure
-        begin
-          {$IFDEF ANDROID}
-          TAnimator.AnimateFloat(FImage, 'Position.X', C_MENU_WIDTH, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
-          {$ELSE}
-          TAnimator.AnimateFloatWait(FImage, 'Position.X', C_MENU_WIDTH, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
-          {$ENDIF}
-          FImage.HitTest := True;
-          FMenu.HitTest := True;
-        end
-      );
-    end
-  ).Start;
+  {$IFDEF ANDROID}
+  Application.ProcessMessages;
+  TAnimator.AnimateFloat(FImage, 'Position.X', C_MENU_WIDTH, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
+  FImage.HitTest := True;
+  FMenu.HitTest := True;
+  {$ELSE}
+  Application.ProcessMessages;
+  TAnimator.AnimateFloatWait(FImage, 'Position.X', C_MENU_WIDTH, C_MENU_SLIDE_SPEED, TAnimationType.&In, TInterpolationType.Quadratic);
+  FImage.HitTest := True;
+  FMenu.HitTest := True;
+  {$ENDIF}
 end;
 
 procedure TksSideMenu.UpdateMenu;
@@ -367,7 +363,7 @@ begin
                                             atMore);
       AInputListItem.TextColor := claWhite;
       AInputListItem.BackgroundColor := claBlack;
-      AInputListItem.SelectedColor := claBlack;
+      AInputListItem.SelectedColor := claDarkgray;
     finally
       FreeAndNil(ABmp);
     end;

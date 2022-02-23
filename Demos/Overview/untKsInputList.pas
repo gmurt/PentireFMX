@@ -26,7 +26,6 @@ type
     procedure ksToolbar1MenuButtonClick(Sender: TObject);
     procedure ksInputList1ItemClick(Sender: TObject;
       AItem: TksBaseInputListItem; AID: string);
-    procedure ksToolbar1Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -46,19 +45,24 @@ uses System.UIConsts, Json, FMX.DialogService, untSideMenu;
 procedure TfrmKsInputList.FormCreate(Sender: TObject);
 var
   ICount: integer;
+  AItem: TksBaseInputListItem;
 begin
-  for ICount := 1 to 30 do
+  for ICount := 1 to 3 do
   begin
-    ksInputList1.Items.AddSeperator('SETTINGS');
-    ksInputList1.Items.AddItemSelector('LOOKUP_1', Image1.Bitmap, 'Selector Item', '4', ['1','2','3','4','5','6','7','8','9','10']);
-    ksInputList1.Items.AddEditBoxItem('PHONEEDIT_'+ICount.ToString, Image1.Bitmap, 'Phone Keyboard', '', 'NUMBER', TVirtualKeyboardType.PhonePad);
-    ksInputList1.Items.AddEditBoxItem('EDIT_'+ICount.ToString, Image1.Bitmap, 'Normal Keyboard', '', 'TEXT', TVirtualKeyboardType.Default);
-    ksInputList1.Items.AddSwitchItem('SWITCH_1', Image1.Bitmap, 'Item 3', False);
-    ksInputList1.Items.AddSwitchItem('SWITCH_2', Image1.Bitmap, 'Item 4', True);
-    ksInputList1.Items.AddCheckBoxItem('CHECKBOX_1', Image1.Bitmap, 'Item 5', False);
-    ksInputList1.Items.AddCheckBoxItem('CHECKBOX_2', Image1.Bitmap, 'Item 6', True);
-    ksInputList1.Items.AddButtonItem('BUTTON_1', Image1.Bitmap, 'Item 7', 'Test');
-  end;
+  //ksInputList1.BeginUpdate;
+  ksInputList1.Items.AddSeperator('SETTINGS');
+  AItem := ksInputList1.Items.AddItemSelector('LOOKUP_1', Image1.Bitmap, 'Selector Item', '4', ['1','2','3','4','5','6','7','8','9','10']);
+  //AItem.BackgroundColor := claRed;
+  ksInputList1.Items.AddEditBoxItem('PHONEEDIT_'+ICount.ToString, Image1.Bitmap, 'Phone Keyboard', '', 'NUMBER', TVirtualKeyboardType.PhonePad);
+  ksInputList1.Items.AddEditBoxItem('URLEDIT_'+ICount.ToString, Image1.Bitmap, 'URL Keyboard', '', 'URL', TVirtualKeyboardType.URL);
+  ksInputList1.Items.AddSwitchItem('SWITCH_1', Image1.Bitmap, 'Item 3', False);
+  ksInputList1.Items.AddSwitchItem('SWITCH_2', Image1.Bitmap, 'Item 4', True);
+  ksInputList1.Items.AddCheckBoxItem('CHECKBOX_1', Image1.Bitmap, 'Item 5', False);
+  ksInputList1.Items.AddCheckBoxItem('CHECKBOX_2', Image1.Bitmap, 'Item 6', True);
+  ksInputList1.Items.AddButtonItem('BUTTON_1', Image1.Bitmap, 'Item 7', 'Test');
+  ksInputList1.Items.AddTrackBar('TRACKBAR_1', Image1.Bitmap, 'Item 8', 50, 100);
+  //ksInputList1.EndUpdate;
+end;
 end;
 
 procedure TfrmKsInputList.ksInputList1ItemButtonClick(Sender: TObject;
@@ -70,7 +74,7 @@ end;
 procedure TfrmKsInputList.ksInputList1ItemClick(Sender: TObject;
   AItem: TksBaseInputListItem; AID: string);
 begin
-  //AItem.BackgroundColor := claBlue;
+  AItem.BackgroundColor := claBlue;
 end;
 
 procedure TfrmKsInputList.ksInputList1ItemSwitchChanged(Sender: TObject;
@@ -86,11 +90,6 @@ begin
   AItem.Title := AValue.ToString;
 end;
 
-
-procedure TfrmKsInputList.ksToolbar1Click(Sender: TObject);
-begin
-  ksInputList1.ShowOnScreenControls2;
-end;
 
 procedure TfrmKsInputList.ksToolbar1MenuButtonClick(Sender: TObject);
 begin

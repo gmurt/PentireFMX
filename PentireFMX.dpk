@@ -46,10 +46,7 @@ contains
   ksVirtualListView in 'ksVirtualListView.pas',
   ksAccessories in 'ksAccessories.pas',
   ksToolbar in 'ksToolbar.pas',
-  ksCircleProgress in 'ksCircleProgress.pas',
-  ksPinCode in 'ksPinCode.pas',
-  ksCommon in 'ksCommon.pas',
-  ksProgressIndicator in 'ksProgressIndicator.pas';
+  ksCircleProgress in 'ksCircleProgress.pas';
 
 end.
 

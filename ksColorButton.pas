@@ -38,7 +38,6 @@ type
   private
     FColor: TAlphaColor;
     FFontColor: TAlphaColor;
-    FFontStyle: TFontStyles;
     FHighlightColor: TAlphaColor;
     FBorderColor: TAlphaColor;
     FLabel: TLabel;
@@ -51,7 +50,6 @@ type
     procedure SetColours(ANormal, AHighlight, ABorder, AFont: TAlphaColor);
     procedure SetBorderRadius(const Value: single);
     procedure SetFontColor(const Value: TAlphaColor);
-    procedure SetFontStyle(const Value: TFontStyles);
   protected
     procedure MouseDown(Button: TMouseButton; Shift: TShiftState; X, Y: Single); override;
     procedure MouseUp(Button: TMouseButton; Shift: TShiftState; X, Y: Single); override;
@@ -61,11 +59,10 @@ type
     destructor Destroy; override;
   published
     property Hint;
-    property Style: TksColorButtonStyle read FStyle write SetStyle default ksbsWhite;
+    property Style: TksColorButtonStyle read FStyle write SetStyle default ksbsGreen;
     property Text: string read GetText write SetText;
     property BorderRadius: single read FBorderRadius write SetBorderRadius;
     property FontColor: TAlphaColor read FFontColor write SetFontColor;
-    property FontStyle: TFontStyles read FFontStyle write SetFontStyle;
   end;
 
   procedure Register;
@@ -87,17 +84,16 @@ begin
   FLabel := TLabel.Create(Self);
   FLabel.Stored := False;
   FLabel.Align := TAlignLayout.Client;
-  FLabel.StyledSettings := [TStyledSetting.Family];
+  FLabel.StyledSettings := [TStyledSetting.Family,TStyledSetting.Style];
   FLabel.Font.Size := 14;
   FLabel.TextSettings.HorzAlign := TTextAlign.Center;
   FLabel.TextSettings.FontColor := claWhite;
   FLabel.Text := 'Button';
   AddObject(FLabel);
   Stroke.Color := claBlack;
-  FStyle := ksbsWhite;
+  FStyle := ksbsGreen;
   Width := 100;
   Height := 40;
-  FFontStyle := [];
   //FBorderRadius := 0;
   UpdateButton;
 end;
@@ -169,13 +165,7 @@ end;
 procedure TksColorButton.SetFontColor(const Value: TAlphaColor);
 begin
   FFontColor := Value;
-  FLabel.FontColor := Value;
   UpdateButton;
-end;
-
-procedure TksColorButton.SetFontStyle(const Value: TFontStyles);
-begin
-  FLabel.Font.Style := Value;
 end;
 
 procedure TksColorButton.SetText(const Value: string);

@@ -38,13 +38,12 @@ procedure TfrmMenu.ksSideMenu1SelectItem(Sender: TObject; AMenuItemID: string);
 var
   ATarget: TCommonCustomForm;
 begin
-  ATarget := nil;
   if AMenuItemID = 'HOME' then ATarget := frmHome;
   if AMenuItemID = 'KSINPUTLIST' then ATarget := frmKsInputList;
   if AMenuItemID = 'KSSEGMENTBUTTONS' then ATarget := frmKsSegmentButtons;
   if AMenuItemID = 'KSTABCONTROL' then ATarget := frmKsTabControl;
-  if Assigned(ATarget) then
-    ksSideMenu1.CloseMenu(ATarget);
+
+  ksSideMenu1.CloseMenu(ATarget);
 end;
 
 end.
