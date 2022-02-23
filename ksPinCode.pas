@@ -1,10 +1,10 @@
 {*******************************************************************************
 *                                                                              *
-*  TksPinCode - Pin Code Entry Component                                       *
+*  PentireFMX                                                                  *
 *                                                                              *
-*  https://bitbucket.org/gmurt/kscomponents                                    *
+*  https://github.com/gmurt/PentireFMX                                         *
 *                                                                              *
-*  Copyright 2017 Graham Murt                                                  *
+*  Copyright 2020 Graham Murt                                                  *
 *                                                                              *
 *  email: graham@kernow-software.co.uk                                         *
 *                                                                              *
@@ -17,10 +17,11 @@
 *  Unless required by applicable law or agreed to in writing, software         *
 *  distributed under the License is distributed on an "AS IS" BASIS,           *
 *  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.    *
-*  See the License for the specific language governing permissions and         *
+*  See the License forthe specific language governing permissions and          *
 *  limitations under the License.                                              *
 *                                                                              *
 *******************************************************************************}
+
 unit ksPinCode;
 
 interface
