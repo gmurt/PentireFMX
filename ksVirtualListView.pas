@@ -879,12 +879,15 @@ var
   ASwitchSize: TSizeF;
   ASwitchBmp: array[False..True] of TBitmap;
 
-
 procedure Register;
 begin
   RegisterComponents('Pentire FMX', [TksVirtualListView]);
 end;
 
+procedure InitializeTextLayout;
+begin
+  ATextLayout := TTextLayoutManager.DefaultTextLayout.Create;
+end;
 
 function GetScreenScale: single;
 var
@@ -952,6 +955,8 @@ begin
   Result := 0;
   if AText = '' then
     Exit;
+  if ATextLayout = nil then
+    InitializeTextLayout;
   ATextLayout.BeginUpdate;
   // Setting the layout MaxSize
   APoint.x := MaxSingle;
@@ -981,6 +986,17 @@ procedure InitializeSwitch(const AForce: Boolean = false); var ASwitch: TSwitch;
 begin
   if not assigned(application.MainForm) then exit;
   if (not AForce) and (not ASwitchSize.IsZero) then exit;
+
+  if ASwitchBmp[True] = nil then
+  begin
+    ASwitchBmp[True] := TBitmap.Create;
+    ASwitchBmp[True].BitmapScale := GetScreenScale;
+  end;
+  if ASwitchBmp[False] = nil then
+  begin
+    ASwitchBmp[False] := TBitmap.Create;
+    ASwitchBmp[False].BitmapScale := GetScreenScale;
+  end;
 
   ASwitch := TSwitch.Create(nil);
   try
@@ -1025,11 +1041,14 @@ var
   ASaveState: TCanvasSaveState;
 begin
   InitializeSwitch;
-  ASaveState := ACanvas.SaveState;
-  try
-    ACanvas.DrawBitmap(ASwitchBmp[AChecked], RectF(0, 0, ASwitchBmp[AChecked].Width, ASwitchBmp[AChecked].Height), ARect, 1);
-  finally
-    ACanvas.RestoreState(ASaveState);
+  if ASwitchBmp[AChecked] <> nil then
+  begin
+    ASaveState := ACanvas.SaveState;
+    try
+      ACanvas.DrawBitmap(ASwitchBmp[AChecked], RectF(0, 0, ASwitchBmp[AChecked].Width, ASwitchBmp[AChecked].Height), ARect, 1);
+    finally
+      ACanvas.RestoreState(ASaveState);
+    end;
   end;
 end;
 
@@ -3406,6 +3425,8 @@ function TksVListItemTextObject.CalculateTextWidth(AText: string; AFont: TFont; 
 var
   APoint: TPointF;
 begin
+  if ATextLayout = nil then
+    InitializeTextLayout;
   ATextLayout.BeginUpdate;
   // Setting the layout MaxSize
   if AMaxWidth > 0 then
@@ -4701,13 +4722,6 @@ end;
 initialization
 
   AScreenScale := 0;
-  ATextLayout := TTextLayoutManager.DefaultTextLayout.Create;
-
-  ASwitchBmp[True] := TBitmap.Create;
-  ASwitchBmp[True].BitmapScale := GetScreenScale;
-  ASwitchBmp[False] := TBitmap.Create;
-  ASwitchBmp[False].BitmapScale := GetScreenScale;
-
 
 finalization
 
